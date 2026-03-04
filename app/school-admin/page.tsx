@@ -29,6 +29,7 @@ import { SCHOOL_ADMIN_ENDPOINTS } from '@/lib/constants'
 import { apiClient } from '@/lib/api-client'
 import { mockBooths, mockPeakHours, mockPrizes } from '@/lib/mock-data'
 import { StudentCheckinList } from '@/components/school-admin/StudentCheckinList'
+import { UserProfileHeader } from '@/components/UserProfileHeader'
 
 // Mock data for demonstration
 const MOCK_STATS: DashboardStats = {
@@ -242,6 +243,7 @@ export default function SchoolAdminDashboard() {
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Xuất dữ liệu</span>
           </Button>
+          <UserProfileHeader />
         </div>
       }
     >

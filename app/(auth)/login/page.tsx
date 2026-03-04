@@ -7,50 +7,70 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Mail, Lock, AlertCircle, Loader2 } from 'lucide-react'
+import { Mail, Lock, Loader2 } from 'lucide-react'
 import { useApi } from '@/hooks/useApi'
 import { AUTH_ENDPOINTS } from '@/lib/constants'
-import { AuthUser } from '@/lib/types'
+import { useAuthControllerLogin, useAuthControllerGetProfile } from '@/lib/api/generated/auth/auth'
+import { toast } from 'sonner'
 import { apiClient } from '@/lib/api-client'
+import { useQueryClient } from '@tanstack/react-query'
+import { getAuthControllerGetProfileQueryKey } from '@/lib/api/generated/auth/auth'
 
 export default function LoginPage() {
   const router = useRouter()
+  // Note: the backend login doesn't seem to take role in LoginDto, but we keep the UI state
   const [role, setRole] = useState<'school_admin' | 'business_admin'>('school_admin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const queryClient = useQueryClient()
+
+  const { mutateAsync: login, isPending } = useAuthControllerLogin()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
-    setLoading(true)
 
     try {
-      const response = await apiClient.post<AuthUser>(AUTH_ENDPOINTS.LOGIN, {
-        email,
-        password,
-        role,
+      const response = await login({
+        data: {
+          email,
+          password
+        }
       })
 
-      if (response?.token) {
-        apiClient.setToken(response.token)
-        
-        // Redirect based on role
-        if (role === 'school_admin') {
-          router.push('/school-admin')
-        } else {
-          router.push('/business-admin')
-        }
+      // customAxiosInstance now returns response.data (unwrapped Axios response).
+      // Orval typed return: { data: AuthResponseDto, status: 200, headers }
+      // So response = { data: AuthResponseDto, status: 200, headers }
+      // and response.data = AuthResponseDto = { accessToken, refreshToken, role, ... }
+      console.log('[Login] full response:', JSON.stringify(response, null, 2))
+
+      const authDto = (response as any)?.data
+      const accessToken: string | undefined = authDto?.accessToken
+      const userRole: string = authDto?.role ?? ''
+      console.log('[Login] accessToken:', accessToken?.slice(0, 20), '| role:', userRole)
+
+      if (!accessToken) {
+        toast.error('Đăng nhập thất bại – không nhận được token')
+        return
       }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Invalid email or password'
+
+      localStorage.setItem('auth_token', accessToken)
+      toast.success('Đăng nhập thành công')
+
+      const roleLower = userRole.toLowerCase()
+      const target = roleLower === 'school_admin'
+        ? '/school-admin'
+        : roleLower === 'business_admin'
+          ? '/business-admin'
+          : role === 'school_admin' ? '/school-admin' : '/business-admin'
+
+      console.log('[Login] routing to:', target)
+      router.push(target)
+    } catch (err: any) {
+      console.error('Login error:', err)
+      toast.error(
+        err?.response?.data?.message || err?.message || 'Email hoặc mật khẩu không chính xác'
       )
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -69,12 +89,6 @@ export default function LoginPage() {
 
           <TabsContent value="school_admin" className="space-y-4">
             <form onSubmit={handleLogin} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
 
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center gap-2">
@@ -88,7 +102,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  disabled={loading}
+                  disabled={isPending}
                 />
               </div>
 
@@ -104,16 +118,16 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  disabled={loading}
+                  disabled={isPending}
                 />
               </div>
 
               <Button
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/90"
-                disabled={loading}
+                disabled={isPending}
               >
-                {loading ? (
+                {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Signing in...
@@ -127,12 +141,6 @@ export default function LoginPage() {
 
           <TabsContent value="business_admin" className="space-y-4">
             <form onSubmit={handleLogin} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
 
               <div className="space-y-2">
                 <Label htmlFor="email-business" className="flex items-center gap-2">
@@ -146,7 +154,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  disabled={loading}
+                  disabled={isPending}
                 />
               </div>
 
@@ -162,16 +170,16 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  disabled={loading}
+                  disabled={isPending}
                 />
               </div>
 
               <Button
                 type="submit"
                 className="w-full bg-primary hover:bg-primary/90"
-                disabled={loading}
+                disabled={isPending}
               >
-                {loading ? (
+                {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Signing in...

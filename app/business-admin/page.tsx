@@ -14,6 +14,7 @@ import { Visitor, BoothStats } from '@/lib/types'
 import { BUSINESS_ADMIN_ENDPOINTS } from '@/lib/constants'
 import { apiClient } from '@/lib/api-client'
 import { mockBooths, mockPeakHours, mockVisitors } from '@/lib/mock-data'
+import { UserProfileHeader } from '@/components/UserProfileHeader'
 
 // Mock data for demonstration
 const MOCK_BOOTH_STATS: BoothStats = {
@@ -120,7 +121,10 @@ export default function BusinessAdminDashboard() {
             {/* Trends */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-                <BoothTrendsChart data={boothStats.topHours} title="Phân bố khách theo giờ" />
+                <BoothTrendsChart
+                  data={boothStats.topHours.map(item => ({ time: `${item.hour}:00`, count: item.count }))}
+                  title="Phân bố khách theo giờ"
+                />
               </div>
               <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
                 <BoothTrendsChart data={trends} title="Xu hướng khách hàng hàng tuần" />
@@ -214,6 +218,7 @@ export default function BusinessAdminDashboard() {
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Xuất khách</span>
           </Button>
+          <UserProfileHeader />
         </div>
       }
     >
