@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DashboardLayout } from '@/components/DashboardLayout'
-import { StatsCard } from '@/components/school-admin/StatsCard'
 import { BoothsTable } from '@/components/school-admin/BoothsTable'
 import { PrizesSection } from '@/components/school-admin/PrizesSection'
 import { ScanChart } from '@/components/school-admin/ScanChart'
+import { BoothScanStats } from '@/components/school-admin/BoothScanStats'
 import { DistributionChart } from '@/components/analytics/DistributionChart'
 import { AreaTrendsChart } from '@/components/analytics/AreaTrendsChart'
 import { ComparisonBarChart } from '@/components/analytics/ComparisonBarChart'
@@ -22,34 +22,14 @@ import {
   BarChart3,
   Award,
   LineChart,
-  Grid3x3,
+  SearchIcon,
 } from 'lucide-react'
-import { Booth, Prize, DashboardStats } from '@/lib/types'
-import { SCHOOL_ADMIN_ENDPOINTS } from '@/lib/constants'
-import { apiClient } from '@/lib/api-client'
-import { mockBooths, mockPeakHours, mockPrizes } from '@/lib/mock-data'
+import { Booth, Prize } from '@/lib/types'
+import { mockPrizes } from '@/lib/mock-data'
 import { StudentCheckinList } from '@/components/school-admin/StudentCheckinList'
+import { StudentBusinessLookup } from '@/components/school-admin/StudentBusinessLookup'
 import { UserProfileHeader } from '@/components/UserProfileHeader'
-
-// Mock data for demonstration
-const MOCK_STATS: DashboardStats = {
-  totalVisitors: 655,
-  totalBooths: 6,
-  totalScans: 1244,
-  averageScansPerBooth: 207.3,
-  peakHours: mockPeakHours,
-}
-
-const MOCK_BOOTHS: Booth[] = mockBooths.map((booth) => ({
-  id: booth.id,
-  name: booth.name,
-  company: booth.company,
-  position: booth.position,
-  visitorCount: booth.visitorCount,
-  staffName: booth.representative,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-}))
+import { customAxiosInstance } from '@/lib/axios-instance'
 
 const MOCK_PRIZES: Prize[] = mockPrizes.map((prize) => ({
   id: prize.id,
@@ -62,52 +42,107 @@ const MOCK_PRIZES: Prize[] = mockPrizes.map((prize) => ({
   updatedAt: new Date().toISOString(),
 }))
 
+async function fetchDashboard() {
+  const res = await customAxiosInstance<any>('/api/school-admin/dashboard', { method: 'GET' })
+  return (res as any).data
+}
+
+async function fetchStats() {
+  const res = await customAxiosInstance<any>('/api/school-admin/stats', { method: 'GET' })
+  return (res as any).data
+}
+
+async function fetchBoothsRaw() {
+  const res = await customAxiosInstance<any>('/api/school-admin/booths', { method: 'GET' })
+  return (res as any).data as Array<{
+    id: string; name: string; location: string | null; capacity: number
+    business?: { id: string; name: string }
+  }>
+}
+
 export default function SchoolAdminDashboard() {
-  const [stats, setStats] = useState<DashboardStats>(MOCK_STATS)
-  const [booths, setBooths] = useState<Booth[]>(MOCK_BOOTHS)
-  const [prizes, setPrizes] = useState<Prize[]>(MOCK_PRIZES)
-  const [isLoading, setIsLoading] = useState(false)
+  const [prizes] = useState<Prize[]>(MOCK_PRIZES)
   const [activeTab, setActiveTab] = useState('overview')
 
-  // No authentication required for demo
+  const { data: dashboardData, isFetching, refetch } = useQuery({
+    queryKey: ['school-admin', 'dashboard'],
+    queryFn: fetchDashboard,
+    refetchInterval: 30_000,
+  })
 
-  const handleRefresh = async () => {
-    setIsLoading(true)
-    try {
-      // In production, call your backend API
-      // const response = await apiClient.get(SCHOOL_ADMIN_ENDPOINTS.DASHBOARD)
-      // setStats(response.stats)
-      // setBooths(response.booths)
-      // setPrizes(response.prizes)
+  const { data: statsData } = useQuery({
+    queryKey: ['school-admin', 'stats'],
+    queryFn: fetchStats,
+    refetchInterval: 60_000,
+  })
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      console.log('Dashboard refreshed')
-    } catch (error) {
-      console.error('Failed to refresh dashboard:', error)
-    } finally {
-      setIsLoading(false)
+  const { data: boothsRaw = [] } = useQuery({
+    queryKey: ['school-admin', 'booths-raw'],
+    queryFn: fetchBoothsRaw,
+    staleTime: 5 * 60_000,
+  })
+
+  // ── derived values ─────────────────────────────────────────────────────────
+  const apiStats = dashboardData?.stats ?? {}
+  const totalVisitors   = apiStats.uniqueVisitors   ?? 0
+  const totalBooths     = apiStats.totalBooths      ?? 0
+  const totalScans      = apiStats.totalCheckins     ?? 0
+  const avgScans        = totalBooths ? (totalScans / totalBooths) : 0
+
+  // Hourly distribution for charts
+  const hourlyDist: Array<{ hour: number; count: number }> = statsData?.hourlyDistribution ?? []
+  const peakHoursData = hourlyDist.map((h) => ({ hour: h.hour, count: h.count }))
+
+  // Major distribution
+  const majorDist: Array<{ major: string; count: number }> = statsData?.majorDistribution ?? []
+
+  // Department distribution
+  const deptDist: Array<{ department: string; count: number }> = statsData?.departmentDistribution ?? []
+
+  // Year distribution
+  const yearDist: Array<{ year: number; count: number }> = statsData?.yearDistribution ?? []
+
+  // Daily distribution (compare Day 1 vs Day 2)
+  const dailyDist: Array<{ date: string; count: number; uniqueStudents: number }> =
+    statsData?.dailyDistribution ?? []
+
+  const dailyComparison = dailyDist.map((d) => ({
+    name: new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+    'Lượt quét': d.count,
+    'Sinh viên unique': d.uniqueStudents,
+  }))
+
+  // Real booths mapped to the Booth type (BoothsTable wants visitorCount from booth-stats)
+  // We use recentScans booth list from dashboard for visitor counts
+  const boothStatsList: Array<{ id: string; name: string; business: string; totalScans: number }> =
+    (dashboardData?.booths ?? [])
+  const realBooths: Booth[] = boothsRaw.map((b) => {
+    return {
+      id: b.id,
+      name: b.name,
+      company: b.business?.name ?? b.name,
+      position: b.location ?? '',
+      visitorCount: 0, // filled by BoothScanStats component
+      staffName: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
-  }
+  })
 
-  const handleExport = async () => {
-    try {
-      // In production, call your backend API
-      // const response = await apiClient.get(SCHOOL_ADMIN_ENDPOINTS.EXPORT_DATA)
-      // Download file from response.url
+  const handleRefresh = () => { refetch() }
 
-      alert('Export feature will be implemented with backend integration')
-    } catch (error) {
-      console.error('Failed to export data:', error)
-    }
+  const handleExport = () => {
+    alert('Export feature will be implemented with backend integration')
   }
 
   const navItems = [
-    { id: 'overview', label: 'Tổng quan', icon: <BarChart3 className="h-5 w-5" /> },
-    { id: 'analytics', label: 'Thống kê', icon: <LineChart className="h-5 w-5" /> },
-    { id: 'checkins', label: 'Check-in SV', icon: <Users className="h-5 w-5" /> },
-    { id: 'booths', label: 'Gian hàng', icon: <Building2 className="h-5 w-5" /> },
-    { id: 'prizes', label: 'Giải thưởng', icon: <Award className="h-5 w-5" /> },
+    { id: 'overview',    label: 'Tổng quan',          icon: <BarChart3 className="h-5 w-5" /> },
+    { id: 'booth-stats', label: 'Thống kê gian hàng', icon: <TrendingUp className="h-5 w-5" /> },
+    { id: 'analytics',   label: 'Phân tích',           icon: <LineChart className="h-5 w-5" /> },
+    { id: 'checkins',    label: 'Check-in SV',         icon: <Users className="h-5 w-5" /> },
+    { id: 'lookup',      label: 'Tra cứu SV',          icon: <SearchIcon className="h-5 w-5" /> },
+    { id: 'booths',      label: 'Gian hàng',           icon: <Building2 className="h-5 w-5" /> },
+    { id: 'prizes',      label: 'Giải thưởng',         icon: <Award className="h-5 w-5" /> },
   ]
 
   const renderContent = () => {
@@ -118,10 +153,10 @@ export default function SchoolAdminDashboard() {
             {/* Key Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Khách thăm tổng', value: stats.totalVisitors, icon: Users },
-                { label: 'Gian hàng', value: stats.totalBooths, icon: Building2 },
-                { label: 'Tổng lượt quét', value: stats.totalScans, icon: Activity },
-                { label: 'Quét/gian hàng', value: stats.averageScansPerBooth.toFixed(0), icon: TrendingUp },
+                { label: 'Sinh viên thăm quan', value: totalVisitors,         icon: Users      },
+                { label: 'Gian hàng',            value: totalBooths,           icon: Building2  },
+                { label: 'Tổng lượt quét',       value: totalScans,            icon: Activity   },
+                { label: 'Quét/gian hàng',       value: avgScans.toFixed(0),   icon: TrendingUp },
               ].map((item, i) => (
                 <div key={i} className="bg-white p-4 rounded-lg border border-border/50">
                   <div className="flex items-start justify-between">
@@ -135,10 +170,31 @@ export default function SchoolAdminDashboard() {
               ))}
             </div>
 
-            {/* Main Chart */}
+            {/* Hourly chart */}
             <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-              <ScanChart data={stats.peakHours} />
+              <ScanChart data={peakHoursData} title="Phân bố lượt quét theo giờ" />
             </div>
+
+            {/* Day-by-day */}
+            {dailyComparison.length > 0 && (
+              <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
+                <ComparisonBarChart
+                  data={dailyComparison}
+                  title="Ngày 04/03 vs Ngày 05/03"
+                  dataKeys={[
+                    { key: 'Lượt quét',       color: '#3B82F6', name: 'Lượt quét'       },
+                    { key: 'Sinh viên unique', color: '#10B981', name: 'Sinh viên unique' },
+                  ]}
+                />
+              </div>
+            )}
+          </div>
+        )
+
+      case 'booth-stats':
+        return (
+          <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
+            <BoothScanStats />
           </div>
         )
 
@@ -148,45 +204,53 @@ export default function SchoolAdminDashboard() {
             {/* Hourly Trend */}
             <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
               <AreaTrendsChart
-                data={stats.peakHours.map((item) => ({ name: `${item.hour}:00`, value: item.count }))}
-                title="Phân bố khách theo giờ"
+                data={peakHoursData.map((h) => ({ name: `${h.hour}:00`, value: h.count }))}
+                title="Phân bố sinh viên theo giờ trong ngày"
                 dataKey="value"
                 fill="#3B82F6"
               />
             </div>
 
-            {/* Distribution Charts */}
+            {/* Major + Dept distribution */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
                 <DistributionChart
-                  data={booths.map((booth) => ({ name: booth.name, value: booth.visitorCount }))}
-                  title="Phân bố khách theo gian hàng"
+                  data={majorDist.slice(0, 10).map((m) => ({ name: m.major, value: m.count }))}
+                  title="Phân bố sinh viên theo ngành (Top 10)"
                 />
               </div>
-
               <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
                 <HeatmapGrid
-                  data={booths.map((booth) => ({ name: booth.name, value: booth.visitorCount }))}
-                  title="Bản đồ hiệu suất gian hàng"
+                  data={deptDist.map((d) => ({ name: d.department, value: d.count }))}
+                  title="Sinh viên theo khoa"
                 />
               </div>
             </div>
 
-            {/* Comparison Chart */}
-            <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-              <ComparisonBarChart
-                data={booths.slice(0, 6).map((booth) => ({
-                  name: booth.name,
-                  visitors: booth.visitorCount,
-                  target: 45,
-                }))}
-                title="Hiệu suất gian hàng so với mục tiêu"
-                dataKeys={[
-                  { key: 'visitors', color: '#3B82F6', name: 'Thực tế' },
-                  { key: 'target', color: '#D1D5DB', name: 'Mục tiêu' },
-                ]}
-              />
-            </div>
+            {/* Year distribution */}
+            {yearDist.length > 0 && (
+              <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
+                <ComparisonBarChart
+                  data={yearDist.map((y) => ({ name: `Năm ${y.year}`, 'Sinh viên': y.count }))}
+                  title="Phân bố sinh viên theo năm học"
+                  dataKeys={[{ key: 'Sinh viên', color: '#8B5CF6', name: 'Sinh viên' }]}
+                />
+              </div>
+            )}
+
+            {/* Day comparison */}
+            {dailyComparison.length > 0 && (
+              <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
+                <ComparisonBarChart
+                  data={dailyComparison}
+                  title="So sánh hai ngày sự kiện"
+                  dataKeys={[
+                    { key: 'Lượt quét',       color: '#3B82F6', name: 'Lượt quét'       },
+                    { key: 'Sinh viên unique', color: '#10B981', name: 'Sinh viên unique' },
+                  ]}
+                />
+              </div>
+            )}
           </div>
         )
 
@@ -197,17 +261,24 @@ export default function SchoolAdminDashboard() {
           </div>
         )
 
+      case 'lookup':
+        return (
+          <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
+            <StudentBusinessLookup />
+          </div>
+        )
+
       case 'booths':
         return (
           <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-            <BoothsTable booths={booths} isLoading={isLoading} />
+            <BoothsTable booths={realBooths} isLoading={isFetching} />
           </div>
         )
 
       case 'prizes':
         return (
           <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-            <PrizesSection prizes={prizes} isLoading={isLoading} />
+            <PrizesSection prizes={prizes} isLoading={isFetching} />
           </div>
         )
 
@@ -219,7 +290,7 @@ export default function SchoolAdminDashboard() {
   return (
     <DashboardLayout
       title="Quản lý sự kiện"
-      subtitle="DUT Job Fair 2025"
+      subtitle="DUT Job Fair 2026"
       navItems={navItems}
       activeTab={activeTab}
       onTabChange={setActiveTab}
@@ -229,10 +300,10 @@ export default function SchoolAdminDashboard() {
             variant="outline"
             size="sm"
             onClick={handleRefresh}
-            disabled={isLoading}
+            disabled={isFetching}
             className="flex items-center gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Cập nhật</span>
           </Button>
           <Button

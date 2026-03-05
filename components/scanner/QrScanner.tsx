@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Html5QrcodeScanner, Html5QrcodeScannerState } from 'html5-qrcode'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import QrScannerLib from 'qr-scanner'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { AlertCircle, Loader2, Camera, CameraOff } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface QrScannerProps {
@@ -12,82 +12,107 @@ interface QrScannerProps {
 }
 
 export function QrScanner({ onScan, isProcessing = false }: QrScannerProps) {
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const scannerRef = useRef<QrScannerLib | null>(null)
   const [isScanning, setIsScanning] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!containerRef.current) return
+  // Always keep a ref to the latest onScan so the scanner (created once on mount)
+  // never holds a stale closure — fixes the case where boothId loads async.
+  const onScanRef = useRef(onScan)
+  useEffect(() => { onScanRef.current = onScan }, [onScan])
 
-    // Initialize scanner
-    const scanner = new Html5QrcodeScanner(
-      containerRef.current.id,
-      {
-        fps: 30,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1,
-      },
-      /* verbose= */ false
-    )
+  // Deduplicate: same QR code within 2s counts as one scan
+  const lastScannedRef = useRef<{ code: string; time: number }>({ code: '', time: 0 })
+  // Prevent concurrent API calls
+  const isHandlingRef = useRef(false)
 
-    scannerRef.current = scanner
+  // Stable callback — uses ref so it never captures a stale onScan
+  const handleResult = useCallback(
+    async (result: QrScannerLib.ScanResult) => {
+      const text = result.data
+      if (!text) return
 
-    const onScanSuccess = async (result: string) => {
+      const now = Date.now()
+      if (
+        text === lastScannedRef.current.code &&
+        now - lastScannedRef.current.time < 2000
+      ) return
+
+      // Block re-entry while processing
+      if (isHandlingRef.current) return
+      isHandlingRef.current = true
+      lastScannedRef.current = { code: text, time: now }
+
       try {
-        await onScan(result)
+        console.log('[QrScanner] decoded text:', text)
+        await onScanRef.current(text)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Scan failed')
+      } finally {
+        isHandlingRef.current = false
       }
-    }
+    },
+    [] // no deps — onScan accessed via ref
+  )
 
-    const onScanError = (error: string) => {
-      // Ignore scanning errors - they happen constantly during scanning
-      // Only show actual processing errors
-    }
-
-    scanner.render(onScanSuccess, onScanError)
-    setIsScanning(true)
+  const startScanner = useCallback(async () => {
+    if (!videoRef.current || isStarting || isScanning) return
+    setIsStarting(true)
     setError(null)
 
+    try {
+      const scanner = new QrScannerLib(videoRef.current, handleResult, {
+        // Prefer back camera (camera sau trên điện thoại)
+        preferredCamera: 'environment',
+        // Show highlight box on detected QR
+        highlightScanRegion: true,
+        highlightCodeOutline: true,
+        // Scan region: center 70% of video frame
+        calculateScanRegion: (video: HTMLVideoElement) => {
+          const size = Math.min(video.videoWidth, video.videoHeight) * 0.7
+          return {
+            x: (video.videoWidth - size) / 2,
+            y: (video.videoHeight - size) / 2,
+            width: size,
+            height: size,
+          }
+        },
+        // Use BarcodeDetector API automatically when available (Chrome/Edge native, very fast)
+        // Falls back to WebWorker + ZXing otherwise
+        returnDetailedScanResult: true,
+      })
+
+      scannerRef.current = scanner
+      await scanner.start()
+      setIsScanning(true)
+    } catch (err: unknown) {
+      setError('Không thể truy cập camera. Hãy cho phép quyền camera trong trình duyệt rồi thử lại.')
+      scannerRef.current = null
+    } finally {
+      setIsStarting(false)
+    }
+  }, [handleResult, isStarting, isScanning])
+
+  const stopScanner = useCallback(async () => {
+    if (scannerRef.current) {
+      scannerRef.current.stop()
+      scannerRef.current.destroy()
+      scannerRef.current = null
+    }
+    setIsScanning(false)
+  }, [])
+
+  // Auto-start on mount
+  useEffect(() => {
+    startScanner()
     return () => {
-      if (scanner.getState() === Html5QrcodeScannerState.SCANNING) {
-        scanner.clear().catch((err) => console.log('Clear error:', err))
-      }
+      scannerRef.current?.stop()
+      scannerRef.current?.destroy()
     }
-  }, [onScan])
-
-  const handleStop = async () => {
-    if (scannerRef.current && isScanning) {
-      try {
-        await scannerRef.current.clear()
-        setIsScanning(false)
-      } catch (err) {
-        console.error('Failed to stop scanner:', err)
-      }
-    }
-  }
-
-  const handleRestart = async () => {
-    if (!isScanning && scannerRef.current && containerRef.current) {
-      try {
-        await scannerRef.current.render(
-          async (result) => {
-            try {
-              await onScan(result)
-            } catch (err) {
-              setError(err instanceof Error ? err.message : 'Scan failed')
-            }
-          },
-          () => {}
-        )
-        setIsScanning(true)
-        setError(null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to restart scanner')
-      }
-    }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="space-y-4">
@@ -98,44 +123,71 @@ export function QrScanner({ onScan, isProcessing = false }: QrScannerProps) {
         </Alert>
       )}
 
-      <div
-        id="qr-scanner"
-        ref={containerRef}
-        className="w-full bg-muted rounded-lg overflow-hidden border-2 border-border"
-      />
+      {/* Video viewfinder */}
+      <div className="relative rounded-xl overflow-hidden border-2 border-border bg-black" style={{ minHeight: 300 }}>
+        <video
+          ref={videoRef}
+          className="w-full object-cover"
+          style={{ minHeight: 300, display: 'block' }}
+          muted
+          playsInline
+        />
 
-      <div className="flex gap-2">
-        {isScanning ? (
-          <Button
-            onClick={handleStop}
-            variant="outline"
-            disabled={isProcessing}
-            className="flex-1"
-          >
-            Dừng quét
-          </Button>
-        ) : (
-          <Button
-            onClick={handleRestart}
-            variant="outline"
-            disabled={isProcessing}
-            className="flex-1"
-          >
-            Khởi động lại
-          </Button>
+        {/* Processing overlay */}
+        {isProcessing && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 gap-3 pointer-events-none">
+            <Loader2 className="h-10 w-10 animate-spin text-blue-400" />
+            <p className="text-white text-sm font-medium">Đang xử lý…</p>
+          </div>
         )}
 
-        {isProcessing && (
-          <div className="flex-1 flex items-center justify-center bg-muted rounded-md">
-            <Loader2 className="h-4 w-4 animate-spin" />
+        {/* Starting overlay */}
+        {isStarting && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 gap-3 pointer-events-none">
+            <Loader2 className="h-10 w-10 animate-spin text-white" />
+            <p className="text-white text-sm">Đang khởi động camera…</p>
+          </div>
+        )}
+
+        {/* Idle placeholder when not scanning */}
+        {!isScanning && !isStarting && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 gap-3">
+            <Camera className="h-12 w-12 text-white/40" />
+            <p className="text-white/60 text-sm">Camera chưa bật</p>
           </div>
         )}
       </div>
 
-      <div className="text-sm text-muted-foreground text-center p-4 bg-muted rounded-lg">
-        <p>Hướng camera vào mã QR để quét</p>
-        <p className="text-xs mt-2">Đảm bảo ánh sáng đủ để quét tốt hơn</p>
+      {/* Controls */}
+      <div className="flex gap-2">
+        {isScanning ? (
+          <Button
+            onClick={stopScanner}
+            variant="outline"
+            disabled={isProcessing}
+            className="flex-1 flex items-center gap-2"
+          >
+            <CameraOff className="h-4 w-4" />
+            Dừng camera
+          </Button>
+        ) : (
+          <Button
+            onClick={startScanner}
+            disabled={isStarting || isProcessing}
+            className="flex-1 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            {isStarting
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <Camera className="h-4 w-4" />
+            }
+            {isStarting ? 'Đang khởi động…' : 'Bật camera'}
+          </Button>
+        )}
       </div>
+
+      <p className="text-xs text-center text-muted-foreground">
+        Đặt mã QR vào giữa khung hình · Đảm bảo ánh sáng đủ
+      </p>
     </div>
   )
 }

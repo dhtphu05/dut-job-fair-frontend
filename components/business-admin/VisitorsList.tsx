@@ -24,7 +24,7 @@ export function VisitorsList({ visitors, isLoading = false }: VisitorsListProps)
   const filteredVisitors = visitors.filter(
     (visitor) =>
       visitor.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      visitor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (visitor.email ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       visitor.studentCode.includes(searchTerm)
   )
 

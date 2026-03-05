@@ -42,7 +42,7 @@ export function BoothsTable({ booths, isLoading = false }: BoothsTableProps) {
                   <TableHead>Tên gian hàng</TableHead>
                   <TableHead>Công ty</TableHead>
                   <TableHead>Nhân viên</TableHead>
-                  <TableHead className="text-right">Khách</TableHead>
+                  <TableHead className="text-right">Sinh viên</TableHead>
                   <TableHead>Trạng thái</TableHead>
                 </TableRow>
               </TableHeader>

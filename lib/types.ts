@@ -28,8 +28,8 @@ export interface Visitor {
   id: string
   studentCode: string
   fullName: string
-  email: string
-  phone: string
+  email: string | null
+  phone: string | null
   major: string
   year: number
   createdAt: string

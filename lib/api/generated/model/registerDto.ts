@@ -17,4 +17,6 @@ export interface RegisterDto {
   password: string;
   name: string;
   role?: RegisterDtoRole;
+  /** UUID doanh nghiệp – bắt buộc với business_admin */
+  businessId?: string;
 }

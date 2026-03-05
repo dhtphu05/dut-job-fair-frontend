@@ -29,7 +29,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  QrScanDto,
   ScanDto,
+  ScannerControllerGetAllCheckinsParams,
   ScannerControllerGetRecentScansParams,
   ScannerControllerGetScansParams
 } from '.././model';
@@ -122,6 +124,88 @@ export const useScannerControllerScan = <TError = unknown,
         TContext
       > => {
       return useMutation(getScannerControllerScanMutationOptions(options), queryClient);
+    }
+    /**
+ * @summary Quét QR check-in bằng payload JSON đầy đủ từ QR DUT
+ */
+export type scannerControllerScanByQrDataResponse201 = {
+  data: void
+  status: 201
+}
+
+export type scannerControllerScanByQrDataResponseSuccess = (scannerControllerScanByQrDataResponse201) & {
+  headers: Headers;
+};
+;
+
+export type scannerControllerScanByQrDataResponse = (scannerControllerScanByQrDataResponseSuccess)
+
+export const getScannerControllerScanByQrDataUrl = () => {
+
+
+  
+
+  return `/api/scanner/scan-qr`
+}
+
+export const scannerControllerScanByQrData = async (qrScanDto: QrScanDto, options?: RequestInit): Promise<scannerControllerScanByQrDataResponse> => {
+  
+  return customAxiosInstance<scannerControllerScanByQrDataResponse>(getScannerControllerScanByQrDataUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      qrScanDto,)
+  }
+);}
+  
+
+
+
+export const getScannerControllerScanByQrDataMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scannerControllerScanByQrData>>, TError,{data: QrScanDto}, TContext>, request?: SecondParameter<typeof customAxiosInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof scannerControllerScanByQrData>>, TError,{data: QrScanDto}, TContext> => {
+
+const mutationKey = ['scannerControllerScanByQrData'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof scannerControllerScanByQrData>>, {data: QrScanDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  scannerControllerScanByQrData(data,requestOptions)
+        }
+
+
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ScannerControllerScanByQrDataMutationResult = NonNullable<Awaited<ReturnType<typeof scannerControllerScanByQrData>>>
+    export type ScannerControllerScanByQrDataMutationBody = QrScanDto
+    export type ScannerControllerScanByQrDataMutationError = unknown
+
+    /**
+ * @summary Quét QR check-in bằng payload JSON đầy đủ từ QR DUT
+ */
+export const useScannerControllerScanByQrData = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scannerControllerScanByQrData>>, TError,{data: QrScanDto}, TContext>, request?: SecondParameter<typeof customAxiosInstance>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof scannerControllerScanByQrData>>,
+        TError,
+        {data: QrScanDto},
+        TContext
+      > => {
+      return useMutation(getScannerControllerScanByQrDataMutationOptions(options), queryClient);
     }
     /**
  * @summary Lấy thông tin sinh viên theo visitorId (UUID)
@@ -458,6 +542,123 @@ export function useScannerControllerGetRecentScans<TData = Awaited<ReturnType<ty
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getScannerControllerGetRecentScansQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+/**
+ * @summary Danh sách toàn bộ sinh viên đã check-in tại booth (business-admin)
+ */
+export type scannerControllerGetAllCheckinsResponse200 = {
+  data: void
+  status: 200
+}
+
+export type scannerControllerGetAllCheckinsResponseSuccess = (scannerControllerGetAllCheckinsResponse200) & {
+  headers: Headers;
+};
+;
+
+export type scannerControllerGetAllCheckinsResponse = (scannerControllerGetAllCheckinsResponseSuccess)
+
+export const getScannerControllerGetAllCheckinsUrl = (params: ScannerControllerGetAllCheckinsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/scanner/checkins?${stringifiedParams}` : `/api/scanner/checkins`
+}
+
+export const scannerControllerGetAllCheckins = async (params: ScannerControllerGetAllCheckinsParams, options?: RequestInit): Promise<scannerControllerGetAllCheckinsResponse> => {
+  
+  return customAxiosInstance<scannerControllerGetAllCheckinsResponse>(getScannerControllerGetAllCheckinsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+  
+
+
+
+
+export const getScannerControllerGetAllCheckinsQueryKey = (params?: ScannerControllerGetAllCheckinsParams,) => {
+    return [
+    `/api/scanner/checkins`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+    
+export const getScannerControllerGetAllCheckinsQueryOptions = <TData = Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>, TError = unknown>(params: ScannerControllerGetAllCheckinsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>, TError, TData>>, request?: SecondParameter<typeof customAxiosInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getScannerControllerGetAllCheckinsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>> = ({ signal }) => scannerControllerGetAllCheckins(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ScannerControllerGetAllCheckinsQueryResult = NonNullable<Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>>
+export type ScannerControllerGetAllCheckinsQueryError = unknown
+
+
+export function useScannerControllerGetAllCheckins<TData = Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>, TError = unknown>(
+ params: ScannerControllerGetAllCheckinsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>,
+          TError,
+          Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customAxiosInstance>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useScannerControllerGetAllCheckins<TData = Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>, TError = unknown>(
+ params: ScannerControllerGetAllCheckinsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>,
+          TError,
+          Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customAxiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useScannerControllerGetAllCheckins<TData = Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>, TError = unknown>(
+ params: ScannerControllerGetAllCheckinsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>, TError, TData>>, request?: SecondParameter<typeof customAxiosInstance>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Danh sách toàn bộ sinh viên đã check-in tại booth (business-admin)
+ */
+
+export function useScannerControllerGetAllCheckins<TData = Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>, TError = unknown>(
+ params: ScannerControllerGetAllCheckinsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof scannerControllerGetAllCheckins>>, TError, TData>>, request?: SecondParameter<typeof customAxiosInstance>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getScannerControllerGetAllCheckinsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

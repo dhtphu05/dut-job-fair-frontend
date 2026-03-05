@@ -86,7 +86,7 @@ export function ScanResultModal({
           <DialogDescription>{message}</DialogDescription>
         </DialogHeader>
 
-        {visitor && status === 'success' && (
+        {visitor && (status === 'success' || status === 'duplicate') && (
           <Card className={getStatusColor()}>
             <CardContent className="pt-6 space-y-3">
               <div className="flex items-center gap-3">
@@ -133,10 +133,10 @@ export function ScanResultModal({
         )}
 
         {status === 'duplicate' && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
+          <Alert className="border-yellow-300 bg-yellow-50 text-yellow-800">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
             <AlertDescription>
-              Khách này đã được quét tại gian hàng này rồi. Vui lòng kiểm tra xem có phải là cố ý không.
+              Sinh viên này đã check-in tại gian hàng trong vòng 5 phút gần đây.
             </AlertDescription>
           </Alert>
         )}

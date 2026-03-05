@@ -9,15 +9,17 @@
 - Dashboard riêng cho School Admin và Business Admin
  * OpenAPI spec version: 1.0.0
  */
-import type { AuthResponseDtoBoothId } from './authResponseDtoBoothId';
-import type { AuthResponseDtoRole } from './authResponseDtoRole';
 
-export interface AuthResponseDto {
-  id: string;
-  email: string;
-  name: string;
-  role: AuthResponseDtoRole;
-  accessToken: string;
-  refreshToken: string;
-  boothId?: AuthResponseDtoBoothId;
+export interface QrScanDto {
+  /** Họ tên sinh viên */
+  ho_ten: string;
+  /** Mã số sinh viên (MSSV) */
+  ma_so_sinh_vien: string;
+  /** Lớp học */
+  lop: string;
+  email?: string;
+  phone?: string;
+  /** UUID của gian hàng doanh nghiệp */
+  boothId: string;
+  notes?: string;
 }

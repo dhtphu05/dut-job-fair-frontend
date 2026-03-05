@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { QrScanner } from '@/components/scanner/QrScanner'
 import { ScanResultModal } from '@/components/scanner/ScanResultModal'
@@ -10,144 +10,133 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft } from 'lucide-react'
 import { ScanRecord, Visitor } from '@/lib/types'
-import { SCANNER_ENDPOINTS } from '@/lib/constants'
-import { apiClient } from '@/lib/api-client'
-
-// Mock data for demonstration
-const MOCK_RECENT_SCANS: ScanRecord[] = [
-  {
-    id: '1',
-    visitorId: '101',
-    boothId: 'booth-1',
-    timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
-    status: 'success',
-    visitor: {
-      id: '101',
-      studentCode: 'DUT001',
-      fullName: 'Nguyễn Văn A',
-      email: 'nguyena@dut.edu.vn',
-      phone: '0912345678',
-      major: 'Information Technology',
-      year: 3,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    booth: {
-      id: 'booth-1',
-      name: 'Booth A',
-      company: 'Tech Company ABC',
-      position: 'Position 1',
-      visitorCount: 45,
-      staffName: 'John Doe',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  },
-  {
-    id: '2',
-    visitorId: '102',
-    boothId: 'booth-2',
-    timestamp: new Date(Date.now() - 10 * 60000).toISOString(),
-    status: 'success',
-    visitor: {
-      id: '102',
-      studentCode: 'DUT002',
-      fullName: 'Trần Thị B',
-      email: 'tranb@dut.edu.vn',
-      phone: '0987654321',
-      major: 'Business Administration',
-      year: 4,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    booth: {
-      id: 'booth-2',
-      name: 'Booth B',
-      company: 'Finance Corp',
-      position: 'Position 2',
-      visitorCount: 32,
-      staffName: 'Jane Smith',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  },
-]
+import { useScannerControllerScanByQrData, useScannerControllerGetRecentScans, useScannerControllerGetScans, getScannerControllerGetRecentScansQueryKey } from '@/lib/api/generated/scanner/scanner'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 export default function ScannerPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [visitorCount, setVisitorCount] = useState(0)
-  const [recentScans, setRecentScans] = useState<ScanRecord[]>(MOCK_RECENT_SCANS)
+  const countInitialized = useRef(false)
   const [scanResult, setScanResult] = useState<{
     status: 'success' | 'duplicate' | 'error'
     visitor: Visitor | null
     message: string
   } | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
 
-  // No authentication required for demo
+  const [boothId, setBoothId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const id = localStorage.getItem('booth_id')
+    setBoothId(id)
+    if (!id) {
+      toast.error('Không tìm thấy ID gian hàng. Vui lòng đăng nhập lại.')
+    }
+  }, [])
+
+  // Recent scans query
+  const { data: recentScansData } = useScannerControllerGetRecentScans(
+    { boothId: boothId || '' },
+    { query: { enabled: !!boothId } }
+  )
+
+  // Total scans count for initializing the counter
+  const { data: scansTotalData } = useScannerControllerGetScans(
+    { boothId: boothId || '' },
+    { query: { enabled: !!boothId } }
+  )
+
+  // Initialize visitorCount from backend total (once on load)
+  useEffect(() => {
+    if (!countInitialized.current && scansTotalData) {
+      const total = (scansTotalData as any)?.data?.total
+      if (total !== undefined) {
+        setVisitorCount(total)
+        countInitialized.current = true
+      }
+    }
+  }, [scansTotalData])
+
+  // Map backend response to ScanRecord shape (checkInTime → timestamp)
+  const rawScans: any[] = (recentScansData as any)?.data || []
+  const recentScans: ScanRecord[] = rawScans.map((item: any) => ({
+    id: item.id,
+    visitorId: item.visitor?.id || '',
+    boothId: boothId || '',
+    timestamp: item.checkInTime,
+    status: item.status,
+    visitor: item.visitor,
+  }))
+
+  // Scan mutation
+  const { mutateAsync: scanQr, isPending: isProcessing } = useScannerControllerScanByQrData()
 
   const handleScan = async (qrCode: string) => {
-    setIsProcessing(true)
+    console.log('[handleScan] called, boothId:', boothId, 'qrCode:', qrCode)
+    if (!boothId) {
+      toast.error('Không tìm thấy ID gian hàng. Vui lòng đăng nhập lại.')
+      return
+    }
 
     try {
-      // Parse QR code (format: visitorCode|boothId)
-      const [visitorCode, boothId] = qrCode.split('|')
-
-      if (!visitorCode || !boothId) {
-        setScanResult({
-          status: 'error',
-          visitor: null,
-          message: 'Invalid QR code format',
-        })
-        setModalOpen(true)
-        return
+      // 1. Parse QR code JSON
+      let qrData: any
+      try {
+        qrData = JSON.parse(qrCode)
+      } catch (e) {
+        throw new Error('Định dạng mã QR không hợp lệ. Vui lòng sử dụng mã QR từ DUT.')
       }
 
-      // In production, call your backend API
-      // const response = await apiClient.post(SCANNER_ENDPOINTS.SCAN, {
-      //   visitorCode,
-      //   boothId,
-      // })
-
-      // For now, simulate scan with mock data
-      const mockVisitor: Visitor = {
-        id: Math.random().toString(),
-        studentCode: visitorCode,
-        fullName: 'Test Student',
-        email: 'test@dut.edu.vn',
-        phone: '0912345678',
-        major: 'IT',
-        year: 3,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-
-      const newScan: ScanRecord = {
-        id: Math.random().toString(),
-        visitorId: mockVisitor.id,
-        boothId,
-        timestamp: new Date().toISOString(),
-        status: 'success',
-        visitor: mockVisitor,
-      }
-
-      setVisitorCount((prev) => prev + 1)
-      setRecentScans((prev) => [newScan, ...prev.slice(0, 9)])
-
-      setScanResult({
-        status: 'success',
-        visitor: mockVisitor,
-        message: `Visitor scanned successfully at booth ${boothId}`,
+      // 2. Call Orval mutation
+      const response = await scanQr({
+        data: {
+          ...qrData,
+          boothId,
+        }
       })
-    } catch (error) {
+
+      const result = (response as any).data
+      console.log('[handleScan] API result:', result)
+
+      if (result.success || result.status === 'duplicate') {
+        const visitorData: Visitor = {
+          id: result.visitor?.id || '',
+          studentCode: result.visitor?.studentCode || qrData.ma_so_sinh_vien || '',
+          fullName: result.visitor?.fullName || qrData.ho_ten || '',
+          email: result.visitor?.email || qrData.email || '',
+          phone: result.visitor?.phone || qrData.phone || '',
+          major: result.visitor?.major || qrData.lop || '',
+          year: result.visitor?.year || 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+
+        if (result.status === 'success') {
+          setVisitorCount((prev) => prev + 1)
+          // Invalidate recent scans query
+          queryClient.invalidateQueries({
+            queryKey: getScannerControllerGetRecentScansQueryKey({ boothId })
+          })
+        }
+
+        setScanResult({
+          status: result.status,
+          visitor: visitorData,
+          message: result.message,
+        })
+      } else {
+        throw new Error(result.message || 'Check-in thất bại')
+      }
+    } catch (error: any) {
+      console.error('Scan error:', error)
       setScanResult({
         status: 'error',
         visitor: null,
-        message: error instanceof Error ? error.message : 'Failed to process scan',
+        message: error?.response?.data?.message || error.message || 'Có lỗi xảy ra khi xử lý quét',
       })
     } finally {
-      setIsProcessing(false)
       setModalOpen(true)
     }
   }

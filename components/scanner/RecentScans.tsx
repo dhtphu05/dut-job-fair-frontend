@@ -2,18 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ScanRecord } from '@/lib/types'
-import { Clock, User, Building2 } from 'lucide-react'
+import { Clock, User, GraduationCap } from 'lucide-react'
+import { formatVNTime } from '@/lib/utils'
 
 interface RecentScansProps {
   scans: ScanRecord[]
 }
 
 export function RecentScans({ scans }: RecentScansProps) {
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-  }
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'success':
@@ -56,13 +52,13 @@ export function RecentScans({ scans }: RecentScansProps) {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <GraduationCap className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <p className="text-xs text-muted-foreground truncate">
-                        {scan.booth?.company || 'Unknown Booth'}
+                        {(scan.visitor as any)?.studentCode || ''}{(scan.visitor as any)?.major ? ` – ${(scan.visitor as any).major}` : ''}
                       </p>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {formatTime(scan.timestamp)}
+                      {formatVNTime(scan.timestamp)}
                     </p>
                   </div>
                   <Badge className={`flex-shrink-0 ${getStatusColor(scan.status)}`}>

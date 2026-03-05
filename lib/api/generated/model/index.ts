@@ -11,6 +11,7 @@
  */
 
 export * from './authResponseDto';
+export * from './authResponseDtoBoothId';
 export * from './authResponseDtoRole';
 export * from './boothsControllerFindAllParams';
 export * from './businessAdminControllerGetDashboardParams';
@@ -22,9 +23,11 @@ export * from './createCheckinDto';
 export * from './createSchoolDto';
 export * from './createStudentDto';
 export * from './loginDto';
+export * from './qrScanDto';
 export * from './registerDto';
 export * from './registerDtoRole';
 export * from './scanDto';
+export * from './scannerControllerGetAllCheckinsParams';
 export * from './scannerControllerGetRecentScansParams';
 export * from './scannerControllerGetScansParams';
 export * from './schoolAdminControllerGetVisitorsParams';

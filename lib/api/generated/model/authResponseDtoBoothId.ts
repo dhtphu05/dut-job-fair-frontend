@@ -9,15 +9,5 @@
 - Dashboard riêng cho School Admin và Business Admin
  * OpenAPI spec version: 1.0.0
  */
-import type { AuthResponseDtoBoothId } from './authResponseDtoBoothId';
-import type { AuthResponseDtoRole } from './authResponseDtoRole';
 
-export interface AuthResponseDto {
-  id: string;
-  email: string;
-  name: string;
-  role: AuthResponseDtoRole;
-  accessToken: string;
-  refreshToken: string;
-  boothId?: AuthResponseDtoBoothId;
-}
+export type AuthResponseDtoBoothId = { [key: string]: unknown };

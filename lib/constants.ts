@@ -18,9 +18,11 @@ export const AUTH_ENDPOINTS = {
 // Scanner endpoints
 export const SCANNER_ENDPOINTS = {
   SCAN: '/scanner/scan',
+  SCAN_QR: '/scanner/scan-qr',
   GET_VISITOR: '/scanner/visitor/:visitorId',
   GET_SCANS: '/scanner/scans',
   RECENT_SCANS: '/scanner/recent-scans',
+  GET_CHECKINS: '/scanner/checkins',
 }
 
 // School Admin endpoints
