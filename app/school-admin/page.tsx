@@ -24,23 +24,11 @@ import {
   LineChart,
   SearchIcon,
 } from 'lucide-react'
-import { Booth, Prize } from '@/lib/types'
-import { mockPrizes } from '@/lib/mock-data'
+import { Booth } from '@/lib/types'
 import { StudentCheckinList } from '@/components/school-admin/StudentCheckinList'
 import { StudentBusinessLookup } from '@/components/school-admin/StudentBusinessLookup'
 import { UserProfileHeader } from '@/components/UserProfileHeader'
 import { customAxiosInstance } from '@/lib/axios-instance'
-
-const MOCK_PRIZES: Prize[] = mockPrizes.map((prize) => ({
-  id: prize.id,
-  name: prize.type === 'Early Bird' ? 'Bộ quà tặng sơ cấp' : 'Giải thưởng đặc biệt',
-  type: prize.type === 'Early Bird' ? 'early_bird' : 'lucky_draw',
-  description: prize.description,
-  quantity: prize.count,
-  qualificationRule: prize.description,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-}))
 
 async function fetchDashboard() {
   const res = await customAxiosInstance<any>('/api/school-admin/dashboard', { method: 'GET' })
@@ -61,7 +49,6 @@ async function fetchBoothsRaw() {
 }
 
 export default function SchoolAdminDashboard() {
-  const [prizes] = useState<Prize[]>(MOCK_PRIZES)
   const [activeTab, setActiveTab] = useState('overview')
 
   const { data: dashboardData, isFetching, refetch } = useQuery({
@@ -278,7 +265,7 @@ export default function SchoolAdminDashboard() {
       case 'prizes':
         return (
           <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-            <PrizesSection prizes={prizes} isLoading={isFetching} />
+            <PrizesSection />
           </div>
         )
 
