@@ -19,6 +19,7 @@ import {
   TrendingUp,
   Download,
   RefreshCw,
+  Loader2,
   BarChart3,
   Award,
   LineChart,
@@ -29,6 +30,7 @@ import { StudentCheckinList } from '@/components/school-admin/StudentCheckinList
 import { StudentBusinessLookup } from '@/components/school-admin/StudentBusinessLookup'
 import { UserProfileHeader } from '@/components/UserProfileHeader'
 import { customAxiosInstance } from '@/lib/axios-instance'
+import { exportSchoolAdminExcel } from '@/lib/export-excel'
 
 async function fetchDashboard() {
   const res = await customAxiosInstance<any>('/api/school-admin/dashboard', { method: 'GET' })
@@ -50,6 +52,7 @@ async function fetchBoothsRaw() {
 
 export default function SchoolAdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview')
+  const [isExporting, setIsExporting] = useState(false)
 
   const { data: dashboardData, isFetching, refetch } = useQuery({
     queryKey: ['school-admin', 'dashboard'],
@@ -118,8 +121,38 @@ export default function SchoolAdminDashboard() {
 
   const handleRefresh = () => { refetch() }
 
-  const handleExport = () => {
-    alert('Export feature will be implemented with backend integration')
+  const handleExport = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    try {
+      // Fetch all check-ins (up to 9999) and booth stats in parallel
+      const [checkinsRes, boothStatsRes] = await Promise.all([
+        customAxiosInstance<any>('/api/school-admin/checkins?page=1&pageSize=9999', { method: 'GET' }),
+        customAxiosInstance<any>('/api/school-admin/booth-stats', { method: 'GET' }),
+      ])
+      const allCheckins = (checkinsRes as any).data?.items ?? []
+      const allBoothStats = (boothStatsRes as any).data ?? []
+
+      exportSchoolAdminExcel({
+        stats: {
+          totalVisitors: totalVisitors,
+          totalBooths: totalBooths,
+          totalScans: totalScans,
+        },
+        hourlyDist,
+        majorDist,
+        deptDist,
+        yearDist,
+        dailyDist,
+        boothStats: allBoothStats,
+        checkins: allCheckins,
+      })
+    } catch (err) {
+      console.error('Export failed:', err)
+      alert('Xuất file thất bại. Vui lòng thử lại.')
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const navItems = [
@@ -296,10 +329,15 @@ export default function SchoolAdminDashboard() {
           <Button
             size="sm"
             onClick={handleExport}
+            disabled={isExporting}
             className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
           >
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Xuất dữ liệu</span>
+            {isExporting
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <Download className="h-4 w-4" />}
+            <span className="hidden sm:inline">
+              {isExporting ? 'Đang xuất...' : 'Xuất Excel'}
+            </span>
           </Button>
           <UserProfileHeader />
         </div>

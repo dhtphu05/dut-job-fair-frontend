@@ -52,8 +52,8 @@ export function DashboardLayout({
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-              <p className="text-sm text-muted-foreground">{subtitle}</p>
+              <h1 className="text-xl font-bold text-foreground leading-tight">{title}</h1>
+              <p className="text-xs text-muted-foreground">{subtitle}</p>
             </div>
           </div>
           {headerActions && <div className="flex gap-2">{headerActions}</div>}

@@ -14,15 +14,21 @@ interface HeatmapGridProps {
 }
 
 export function HeatmapGrid({ data, title, maxValue }: HeatmapGridProps) {
-  const max = maxValue || Math.max(...data.map((d) => d.value))
+  const sorted = [...data].sort((a, b) => b.value - a.value)
+  const max = maxValue || Math.max(...sorted.map((d) => d.value), 1)
+  const total = sorted.reduce((s, d) => s + d.value, 0)
 
-  const getColor = (value: number) => {
-    const percentage = value / max
-    if (percentage < 0.2) return 'bg-blue-50 text-blue-900'
-    if (percentage < 0.4) return 'bg-blue-100 text-blue-900'
-    if (percentage < 0.6) return 'bg-blue-300 text-white'
-    if (percentage < 0.8) return 'bg-blue-500 text-white'
-    return 'bg-blue-600 text-white'
+  const getBarColor = (pct: number) => {
+    if (pct >= 0.8) return 'bg-blue-600'
+    if (pct >= 0.6) return 'bg-blue-500'
+    if (pct >= 0.4) return 'bg-blue-400'
+    if (pct >= 0.2) return 'bg-blue-300'
+    return 'bg-blue-200'
+  }
+
+  const getTextColor = (pct: number) => {
+    if (pct >= 0.4) return 'text-blue-700'
+    return 'text-blue-500'
   }
 
   return (
@@ -31,18 +37,41 @@ export function HeatmapGrid({ data, title, maxValue }: HeatmapGridProps) {
         <CardTitle className="text-lg">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-          {data.map((item, index) => (
-            <div
-              key={index}
-              className={`${getColor(item.value)} p-4 rounded-lg text-center transition-all hover:shadow-lg cursor-pointer`}
-            >
-              <div className="font-semibold text-sm truncate">{item.name}</div>
-              <div className="text-lg font-bold">{item.value}</div>
-            </div>
-          ))}
+        <div className="space-y-2.5">
+          {sorted.map((item, index) => {
+            const pct = item.value / max
+            const sharePct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0'
+            return (
+              <div key={index} className="flex items-center gap-3 group">
+                {/* Rank */}
+                <span className="w-5 text-xs text-muted-foreground text-right flex-shrink-0">
+                  {index + 1}
+                </span>
+
+                {/* Name */}
+                <span className="w-44 text-sm font-medium truncate flex-shrink-0" title={item.name}>
+                  {item.name}
+                </span>
+
+                {/* Bar */}
+                <div className="flex-1 bg-muted rounded-full h-5 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${getBarColor(pct)}`}
+                    style={{ width: `${Math.max(pct * 100, 2)}%` }}
+                  />
+                </div>
+
+                {/* Count + share */}
+                <div className="flex items-baseline gap-1 flex-shrink-0 w-20 justify-end">
+                  <span className={`text-sm font-bold ${getTextColor(pct)}`}>{item.value}</span>
+                  <span className="text-xs text-muted-foreground">({sharePct}%)</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </CardContent>
     </Card>
   )
 }
+

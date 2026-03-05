@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { BarChart3, LogOut } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { apiClient } from '@/lib/api-client'
 
@@ -32,11 +33,11 @@ export default function SchoolAdminLayout({
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="bg-primary p-2 rounded-lg">
-              <BarChart3 className="h-5 w-5 text-white" />
-            </div>
+            <Image src="/logo_dut.webp" alt="DUT" width={40} height={40} className="object-contain rounded" priority />
+            <Image src="/logo_tt.jpg" alt="TTHT" width={40} height={40} className="object-contain rounded" priority />
+            <div className="hidden sm:block w-px h-8 bg-border/60" />
             <div>
-              <h1 className="font-bold text-lg">DUT Job Fair 2025</h1>
+              <h1 className="font-bold text-lg">DUT Job Fair 2026</h1>
               <p className="text-xs text-muted-foreground">School Admin Dashboard</p>
             </div>
           </Link>
