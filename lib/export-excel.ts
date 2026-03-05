@@ -97,12 +97,23 @@ function styledSheet(headers: string[], rows: unknown[][]): XLSX.WorkSheet {
   return ws
 }
 
+const VN_OFFSET_MS = 7 * 60 * 60 * 1000
+
+function toVNDate(iso: string): Date {
+  const utc = iso.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(iso) ? iso : iso + 'Z'
+  return new Date(new Date(utc).getTime() + VN_OFFSET_MS)
+}
+
 function fmtDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleString('vi-VN', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-    })
+    const d = toVNDate(iso)
+    const day = d.getUTCDate().toString().padStart(2, '0')
+    const month = (d.getUTCMonth() + 1).toString().padStart(2, '0')
+    const year = d.getUTCFullYear()
+    const h = d.getUTCHours().toString().padStart(2, '0')
+    const m = d.getUTCMinutes().toString().padStart(2, '0')
+    const s = d.getUTCSeconds().toString().padStart(2, '0')
+    return `${day}/${month}/${year} ${h}:${m}:${s}`
   } catch {
     return iso
   }
@@ -110,7 +121,11 @@ function fmtDate(iso: string): string {
 
 function dayLabel(iso: string): string {
   try {
-    return new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    const d = toVNDate(iso)
+    const day = d.getUTCDate().toString().padStart(2, '0')
+    const month = (d.getUTCMonth() + 1).toString().padStart(2, '0')
+    const year = d.getUTCFullYear()
+    return `${day}/${month}/${year}`
   } catch {
     return iso
   }
@@ -125,7 +140,7 @@ export function exportSchoolAdminExcel(payload: ExportPayload, filename?: string
   const overviewRows: unknown[][] = [
     ['Chỉ số', 'Giá trị'],
     ['Sự kiện',        'DUT Job Fair 2026'],
-    ['Ngày xuất báo cáo', new Date().toLocaleString('vi-VN')],
+    ['Ngày xuất báo cáo', fmtDate(new Date().toISOString())],
     ['', ''],
     ['Sinh viên tham quan (unique)', payload.stats.totalVisitors],
     ['Tổng lượt quét (check-in)',   payload.stats.totalScans],

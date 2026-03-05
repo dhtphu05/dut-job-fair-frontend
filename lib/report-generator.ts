@@ -4,6 +4,7 @@
  */
 
 import { StudentCheckinReport, BoothReport } from './database-models'
+import { formatVNDateTime } from './utils'
 
 interface ReportData {
   title: string
@@ -61,7 +62,7 @@ export function downloadCSV(csvContent: string, fileName: string) {
 export function generateStudentCheckinReport(checkins: any[], eventName: string) {
   const reportData: ReportData = {
     title: `Báo cáo check-in sinh viên - ${eventName}`,
-    generatedAt: new Date().toLocaleString('vi-VN'),
+    generatedAt: formatVNDateTime(new Date().toISOString()),
     data: checkins.map((c) => ({
       'MSSV': c.mssv,
       'Tên sinh viên': c.studentName,
@@ -82,7 +83,7 @@ export function generateStudentCheckinReport(checkins: any[], eventName: string)
 export function generateBoothPerformanceReport(booths: any[], eventName: string) {
   const reportData: ReportData = {
     title: `Báo cáo hiệu suất gian hàng - ${eventName}`,
-    generatedAt: new Date().toLocaleString('vi-VN'),
+    generatedAt: formatVNDateTime(new Date().toISOString()),
     data: booths.map((b) => ({
       'Tên gian hàng': b.name,
       'Công ty': b.company,
@@ -103,7 +104,7 @@ export function generateBoothPerformanceReport(booths: any[], eventName: string)
 export function generateSummaryReport(stats: any, eventName: string) {
   const reportData: ReportData = {
     title: `Báo cáo tổng hợp - ${eventName}`,
-    generatedAt: new Date().toLocaleString('vi-VN'),
+    generatedAt: formatVNDateTime(new Date().toISOString()),
     data: [
       { 'Chỉ tiêu': 'Tổng sinh viên check-in', 'Số lượng': stats.totalVisitors },
       { 'Chỉ tiêu': 'Tổng gian hàng', 'Số lượng': stats.totalBooths },
@@ -121,7 +122,7 @@ export function generateSummaryReport(stats: any, eventName: string) {
 export function generateHourlyDistributionReport(peakHours: any[], eventName: string) {
   const reportData: ReportData = {
     title: `Báo cáo phân bố theo giờ - ${eventName}`,
-    generatedAt: new Date().toLocaleString('vi-VN'),
+    generatedAt: formatVNDateTime(new Date().toISOString()),
     data: peakHours.map((h) => ({
       'Giờ': `${h.hour}:00`,
       'Số lượng check-in': h.count,
@@ -144,7 +145,7 @@ export function generateMajorDistributionReport(checkins: any[], eventName: stri
 
   const reportData: ReportData = {
     title: `Báo cáo phân bố theo ngành - ${eventName}`,
-    generatedAt: new Date().toLocaleString('vi-VN'),
+    generatedAt: formatVNDateTime(new Date().toISOString()),
     data: Array.from(majorMap, ([major, count]) => ({
       'Ngành': major,
       'Số sinh viên': count,
@@ -175,7 +176,7 @@ export function generateHTMLReport(
   title: string,
   sections: Array<{ heading: string; data: any[] }>
 ): string {
-  const generatedAt = new Date().toLocaleString('vi-VN')
+  const generatedAt = formatVNDateTime(new Date().toISOString())
 
   const html = `
     <!DOCTYPE html>

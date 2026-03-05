@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ChevronDown, ChevronUp, Download, Trophy, Users } from 'lucide-react'
 import { customAxiosInstance } from '@/lib/axios-instance'
+import { formatVNDateTime } from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -77,7 +78,7 @@ function exportCsv(prize: PrizeData) {
     s.className ?? '',
     s.major ?? '',
     ...(prize.type === 'early_bird'
-      ? [s.firstCheckin ? new Date(s.firstCheckin).toLocaleString('vi-VN') : '']
+      ? [s.firstCheckin ? formatVNDateTime(s.firstCheckin) : '']
       : prize.type === 'booth_special'
         ? [String(s.boothCount ?? 0)]
         : []),
