@@ -31,6 +31,7 @@ axiosInstance.interceptors.response.use(
         if (error.response?.status === 401) {
             if (typeof window !== 'undefined') {
                 localStorage.removeItem('auth_token');
+                localStorage.removeItem('booth_id');
                 // Let the app handle the redirect logic (e.g. by wrapping components or triggering state changes)
                 // window.location.href = '/login'; 
             }

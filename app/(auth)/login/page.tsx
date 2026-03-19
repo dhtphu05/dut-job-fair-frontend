@@ -44,7 +44,11 @@ export default function LoginPage() {
     const accessToken = authDto?.accessToken
     if (!accessToken) { toast.error('Không nhận được token'); return }
     localStorage.setItem('auth_token', accessToken)
-    if (authDto?.boothId) localStorage.setItem('booth_id', authDto.boothId)
+    if (authDto?.boothId) {
+      localStorage.setItem('booth_id', authDto.boothId)
+    } else {
+      localStorage.removeItem('booth_id')
+    }
     toast.success('Thành công!')
     router.push(target)
   }
