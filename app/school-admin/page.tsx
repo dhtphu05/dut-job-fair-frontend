@@ -25,10 +25,12 @@ import {
   LineChart,
   SearchIcon,
   Gift,
+  Settings2,
 } from 'lucide-react'
 import { Booth } from '@/lib/types'
 import { StudentCheckinList } from '@/components/school-admin/StudentCheckinList'
 import { StudentBusinessLookup } from '@/components/school-admin/StudentBusinessLookup'
+import { RewardMilestonesPanel } from '@/components/school-admin/RewardMilestonesPanel'
 import { RewardsRedeemPanel } from '@/components/school-admin/RewardsRedeemPanel'
 import { UserProfileHeader } from '@/components/UserProfileHeader'
 import { customAxiosInstance } from '@/lib/axios-instance'
@@ -163,6 +165,7 @@ export default function SchoolAdminDashboard() {
     { id: 'analytics',   label: 'Phân tích',           icon: <LineChart className="h-5 w-5" /> },
     { id: 'checkins',    label: 'Check-in SV',         icon: <Users className="h-5 w-5" /> },
     { id: 'lookup',      label: 'Tra cứu SV',          icon: <SearchIcon className="h-5 w-5" /> },
+    { id: 'reward-settings', label: 'Mốc quà',         icon: <Settings2 className="h-5 w-5" /> },
     { id: 'rewards',     label: 'Đổi quà',             icon: <Gift className="h-5 w-5" /> },
     { id: 'booths',      label: 'Gian hàng',           icon: <Building2 className="h-5 w-5" /> },
     { id: 'prizes',      label: 'Giải thưởng',         icon: <Award className="h-5 w-5" /> },
@@ -290,6 +293,9 @@ export default function SchoolAdminDashboard() {
             <StudentBusinessLookup />
           </div>
         )
+
+      case 'reward-settings':
+        return <RewardMilestonesPanel />
 
       case 'rewards':
         return <RewardsRedeemPanel />
