@@ -10,9 +10,56 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft } from 'lucide-react'
 import { ScanRecord, Visitor } from '@/lib/types'
-import { useScannerControllerScanByQrData, useScannerControllerGetRecentScans, useScannerControllerGetScans, getScannerControllerGetRecentScansQueryKey } from '@/lib/api/generated/scanner/scanner'
+import {
+  useScannerControllerScan,
+  useScannerControllerScanByQrData,
+  useScannerControllerGetRecentScans,
+  useScannerControllerGetScans,
+  getScannerControllerGetRecentScansQueryKey,
+} from '@/lib/api/generated/scanner/scanner'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+
+type DutQrPayload = {
+  ho_ten: string
+  ma_so_sinh_vien: string
+  lop: string
+  email?: string
+  phone?: string
+}
+
+function tryParseDutQrPayload(rawValue: string): DutQrPayload | null {
+  const trimmed = rawValue.trim()
+  if (!trimmed) return null
+
+  const candidates = [trimmed]
+
+  try {
+    const decoded = decodeURIComponent(trimmed)
+    if (decoded !== trimmed) candidates.push(decoded)
+  } catch {
+    // Ignore malformed URI content and keep other fallbacks.
+  }
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate)
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        typeof parsed.ho_ten === 'string' &&
+        typeof parsed.ma_so_sinh_vien === 'string' &&
+        typeof parsed.lop === 'string'
+      ) {
+        return parsed as DutQrPayload
+      }
+    } catch {
+      // Not a JSON QR payload, continue to fallback.
+    }
+  }
+
+  return null
+}
 
 export default function ScannerPage() {
   const router = useRouter()
@@ -71,7 +118,9 @@ export default function ScannerPage() {
   }))
 
   // Scan mutation
-  const { mutateAsync: scanQr, isPending: isProcessing } = useScannerControllerScanByQrData()
+  const { mutateAsync: scanByCode, isPending: isCodeScanPending } = useScannerControllerScan()
+  const { mutateAsync: scanQr, isPending: isQrScanPending } = useScannerControllerScanByQrData()
+  const isProcessing = isCodeScanPending || isQrScanPending
 
   const handleScan = async (qrCode: string) => {
     console.log('[handleScan] called, boothId:', boothId, 'qrCode:', qrCode)
@@ -81,21 +130,22 @@ export default function ScannerPage() {
     }
 
     try {
-      // 1. Parse QR code JSON
-      let qrData: any
-      try {
-        qrData = JSON.parse(qrCode)
-      } catch (e) {
-        throw new Error('Định dạng mã QR không hợp lệ. Vui lòng sử dụng mã QR từ DUT.')
-      }
+      const rawValue = qrCode.trim()
+      const qrPayload = tryParseDutQrPayload(rawValue)
 
-      // 2. Call Orval mutation
-      const response = await scanQr({
-        data: {
-          ...qrData,
-          boothId,
-        }
-      })
+      const response = qrPayload
+        ? await scanQr({
+            data: {
+              ...qrPayload,
+              boothId,
+            }
+          })
+        : await scanByCode({
+            data: {
+              visitorCode: rawValue,
+              boothId,
+            }
+          })
 
       const result = (response as any).data
       console.log('[handleScan] API result:', result)
@@ -103,11 +153,11 @@ export default function ScannerPage() {
       if (result.success || result.status === 'duplicate') {
         const visitorData: Visitor = {
           id: result.visitor?.id || '',
-          studentCode: result.visitor?.studentCode || qrData.ma_so_sinh_vien || '',
-          fullName: result.visitor?.fullName || qrData.ho_ten || '',
-          email: result.visitor?.email || qrData.email || '',
-          phone: result.visitor?.phone || qrData.phone || '',
-          major: result.visitor?.major || qrData.lop || '',
+          studentCode: result.visitor?.studentCode || qrPayload?.ma_so_sinh_vien || rawValue,
+          fullName: result.visitor?.fullName || qrPayload?.ho_ten || '',
+          email: result.visitor?.email || qrPayload?.email || '',
+          phone: result.visitor?.phone || qrPayload?.phone || '',
+          major: result.visitor?.major || qrPayload?.lop || '',
           year: result.visitor?.year || 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
