@@ -116,10 +116,10 @@ export function RewardsRedeemPanel() {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Không thể redeem mã đổi quà'
+        'Không thể đổi quà bằng mã này'
 
       if (status === 401) {
-        setNetworkError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại bằng school admin.')
+        setNetworkError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại bằng tài khoản quản trị trường.')
       } else {
         setNetworkError(message)
       }
@@ -140,14 +140,14 @@ export function RewardsRedeemPanel() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <Card className="border-border/60">
+        <Card className="border-blue-200 bg-gradient-to-br from-cyan-50 via-white to-blue-50 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ScanLine className="h-5 w-5 text-blue-600" />
               Quét QR đổi quà
             </CardTitle>
             <CardDescription>
-              Quét trực tiếp QR từ app sinh viên. Gia trị QR phai chinh la `requestCode`.
+              Quét trực tiếp QR từ ứng dụng sinh viên. Giá trị QR phải chính là `requestCode`.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -159,16 +159,16 @@ export function RewardsRedeemPanel() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Gift className="h-5 w-5 text-amber-600" />
-              Redeem bang ma tay
+              Đổi quà bằng mã tay
             </CardTitle>
             <CardDescription>
-              Dung khi camera loi hoac staff nhap tay `requestCode`, vi du `RW-AB12CD34`.
+              Dùng khi camera lỗi hoặc nhân sự nhập tay `requestCode`, ví dụ `RW-AB12CD34`.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleManualSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="reward-request-code">Ma doi qua</Label>
+                <Label htmlFor="reward-request-code">Mã đổi quà</Label>
                 <Input
                   id="reward-request-code"
                   value={requestCode}
@@ -186,18 +186,18 @@ export function RewardsRedeemPanel() {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Dang redeem...
+                    Đang xác nhận...
                   </>
                 ) : (
-                  'Xac nhan doi qua'
+                  'Xác nhận đổi quà'
                 )}
               </Button>
             </form>
 
             <Alert>
               <AlertDescription>
-                Neu mang timeout, khong xac nhan bang tay ngay. Hay thu lai cung `requestCode`. Backend se tra
-                `claimed_now` hoac `already_claimed`.
+                Nếu mạng bị timeout, không xác nhận bằng tay ngay. Hãy thử lại cùng `requestCode`. Backend sẽ trả
+                `claimed_now` hoặc `already_claimed`.
               </AlertDescription>
             </Alert>
 
@@ -212,46 +212,46 @@ export function RewardsRedeemPanel() {
 
       <Card className={tone.card}>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               {tone.icon}
-              <CardTitle>Ket qua redeem</CardTitle>
+              <CardTitle>Kết quả đổi quà</CardTitle>
             </div>
             <Badge className={tone.badge}>{tone.label}</Badge>
           </div>
           <CardDescription>
-            {result?.message || 'Chua co giao dich redeem nao trong phien nay.'}
+            {result?.message || 'Chưa có giao dịch đổi quà nào trong phiên này.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {result?.claim ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="rounded-lg border border-black/5 bg-white/70 p-4">
-                <p className="text-muted-foreground">Request code</p>
+                <p className="text-muted-foreground">Mã yêu cầu</p>
                 <p className="font-semibold">{result.claim.requestCode}</p>
               </div>
               <div className="rounded-lg border border-black/5 bg-white/70 p-4">
-                <p className="text-muted-foreground">Trang thai</p>
+                <p className="text-muted-foreground">Trạng thái</p>
                 <p className="font-semibold">{result.claim.status}</p>
               </div>
               <div className="rounded-lg border border-black/5 bg-white/70 p-4">
-                <p className="text-muted-foreground">Sinh vien</p>
-                <p className="font-semibold">{result.claim.student?.fullName || 'Khong co du lieu'}</p>
+                <p className="text-muted-foreground">Sinh viên</p>
+                <p className="font-semibold">{result.claim.student?.fullName || 'Không có dữ liệu'}</p>
                 <p className="text-muted-foreground">{result.claim.student?.studentCode || ''}</p>
               </div>
               <div className="rounded-lg border border-black/5 bg-white/70 p-4">
-                <p className="text-muted-foreground">Moc qua</p>
-                <p className="font-semibold">{result.claim.milestone?.name || 'Khong co du lieu'}</p>
+                <p className="text-muted-foreground">Mốc quà</p>
+                <p className="font-semibold">{result.claim.milestone?.name || 'Không có dữ liệu'}</p>
               </div>
               <div className="rounded-lg border border-black/5 bg-white/70 p-4 md:col-span-2">
-                <p className="text-muted-foreground">Thoi gian doi</p>
+                <p className="text-muted-foreground">Thời gian đổi</p>
                 <p className="font-semibold">{formatDateTime(result.claim.claimedAt)}</p>
               </div>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Quet QR hoac nhap `requestCode` de doi qua. Ket qua thanh cong, da doi roi, het han, va invalid se
-              duoc hien thi o day.
+              Quét QR hoặc nhập `requestCode` để đổi quà. Kết quả thành công, đã đổi rồi, hết hạn và không hợp lệ sẽ
+              được hiển thị ở đây.
             </p>
           )}
         </CardContent>

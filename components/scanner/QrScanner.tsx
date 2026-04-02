@@ -124,14 +124,21 @@ export function QrScanner({ onScan, isProcessing = false }: QrScannerProps) {
       )}
 
       {/* Video viewfinder */}
-      <div className="relative rounded-xl overflow-hidden border-2 border-border bg-black" style={{ minHeight: 300 }}>
+      <div
+        className="relative overflow-hidden rounded-2xl border-2 border-blue-200 bg-black shadow-[0_0_0_4px_rgba(59,130,246,0.08)]"
+        style={{ minHeight: 260 }}
+      >
         <video
           ref={videoRef}
-          className="w-full object-cover"
-          style={{ minHeight: 300, display: 'block' }}
+          className="block w-full object-cover"
+          style={{ minHeight: 260, display: 'block' }}
           muted
           playsInline
         />
+
+        <div className="pointer-events-none absolute inset-4 rounded-2xl border-2 border-white/35 md:inset-6">
+          <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-3xl border-2 border-dashed border-cyan-300/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.18)] sm:h-52 sm:w-52" />
+        </div>
 
         {/* Processing overlay */}
         {isProcessing && (
@@ -159,13 +166,13 @@ export function QrScanner({ onScan, isProcessing = false }: QrScannerProps) {
       </div>
 
       {/* Controls */}
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row">
         {isScanning ? (
           <Button
             onClick={stopScanner}
             variant="outline"
             disabled={isProcessing}
-            className="flex-1 flex items-center gap-2"
+            className="flex-1 gap-2 border-slate-300"
           >
             <CameraOff className="h-4 w-4" />
             Dừng camera
@@ -174,20 +181,20 @@ export function QrScanner({ onScan, isProcessing = false }: QrScannerProps) {
           <Button
             onClick={startScanner}
             disabled={isStarting || isProcessing}
-            className="flex-1 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+            className="flex-1 gap-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 text-white shadow-lg shadow-cyan-500/30 transition-transform hover:scale-[1.01] hover:from-blue-700 hover:via-cyan-600 hover:to-emerald-600"
           >
             {isStarting
               ? <Loader2 className="h-4 w-4 animate-spin" />
               : <Camera className="h-4 w-4" />
             }
-            {isStarting ? 'Đang khởi động…' : 'Bật camera'}
+            {isStarting ? 'Đang khởi động…' : 'Bắt đầu quét QR'}
           </Button>
         )}
       </div>
 
-      <p className="text-xs text-center text-muted-foreground">
-        Đặt mã QR vào giữa khung hình · Đảm bảo ánh sáng đủ
-      </p>
+      <div className="rounded-xl border border-cyan-100 bg-cyan-50/70 px-4 py-3 text-center text-xs text-cyan-900">
+        Đưa mã QR vào giữa khung quét và giữ máy ổn định để nhận mã nhanh hơn.
+      </div>
     </div>
   )
 }

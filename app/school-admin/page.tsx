@@ -31,6 +31,7 @@ import { Booth } from '@/lib/types'
 import { StudentCheckinList } from '@/components/school-admin/StudentCheckinList'
 import { StudentBusinessLookup } from '@/components/school-admin/StudentBusinessLookup'
 import { RewardMilestonesPanel } from '@/components/school-admin/RewardMilestonesPanel'
+import { RewardMilestoneStudentsPanel } from '@/components/school-admin/RewardMilestoneStudentsPanel'
 import { RewardsRedeemPanel } from '@/components/school-admin/RewardsRedeemPanel'
 import { UserProfileHeader } from '@/components/UserProfileHeader'
 import { customAxiosInstance } from '@/lib/axios-instance'
@@ -166,6 +167,7 @@ export default function SchoolAdminDashboard() {
     { id: 'checkins',    label: 'Check-in SV',         icon: <Users className="h-5 w-5" /> },
     { id: 'lookup',      label: 'Tra cứu SV',          icon: <SearchIcon className="h-5 w-5" /> },
     { id: 'reward-settings', label: 'Mốc quà',         icon: <Settings2 className="h-5 w-5" /> },
+    { id: 'reward-students', label: 'SV theo mốc quà', icon: <Gift className="h-5 w-5" /> },
     { id: 'rewards',     label: 'Đổi quà',             icon: <Gift className="h-5 w-5" /> },
     { id: 'booths',      label: 'Gian hàng',           icon: <Building2 className="h-5 w-5" /> },
     { id: 'prizes',      label: 'Giải thưởng',         icon: <Award className="h-5 w-5" /> },
@@ -296,6 +298,9 @@ export default function SchoolAdminDashboard() {
 
       case 'reward-settings':
         return <RewardMilestonesPanel />
+
+      case 'reward-students':
+        return <RewardMilestoneStudentsPanel />
 
       case 'rewards':
         return <RewardsRedeemPanel />
