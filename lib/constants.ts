@@ -3,8 +3,12 @@
  * Central place for all API endpoints and configuration
  */
 
-// API Base URL - will be updated to point to your backend
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+// API Base URL used by fetch-based client (expects /api prefix).
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+const NORMALIZED_API_URL = RAW_API_URL.replace(/\/+$/, '')
+export const API_BASE_URL = NORMALIZED_API_URL.endsWith('/api')
+  ? NORMALIZED_API_URL
+  : `${NORMALIZED_API_URL}/api`
 
 // Authentication endpoints
 export const AUTH_ENDPOINTS = {

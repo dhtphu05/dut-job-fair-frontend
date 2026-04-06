@@ -1,7 +1,8 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 
-// Get API host from env, default to local backend
-const baseURL = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_HOST || 'http://localhost:3000';
+// Orval-generated endpoints already include /api, so baseURL must stay at host root.
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_HOST || 'http://localhost:3000';
+const baseURL = rawApiUrl.replace(/\/+$/, '').replace(/\/api$/, '');
 
 const axiosInstance = axios.create({
     baseURL,
