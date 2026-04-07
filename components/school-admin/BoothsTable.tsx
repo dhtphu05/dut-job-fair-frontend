@@ -9,6 +9,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Booth } from '@/lib/types'
+import { cn } from '@/lib/utils'
 import { Building2 } from 'lucide-react'
 
 interface BoothsTableProps {
@@ -27,45 +28,89 @@ export function BoothsTable({ booths, isLoading = false }: BoothsTableProps) {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex justify-center py-8">
-            <p className="text-muted-foreground">Đang tải gian hàng...</p>
+          <div className="space-y-4 py-4">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 w-full bg-slate-50 animate-pulse rounded-xl" />
+            ))}
           </div>
         ) : booths.length === 0 ? (
-          <div className="flex justify-center py-8">
-            <p className="text-muted-foreground">Không có gian hàng nào</p>
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
+              <Building2 className="h-12 w-12 text-blue-200" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Chưa có gian hàng nào</h3>
+            <p className="text-slate-500 max-w-[280px]">
+              Dữ liệu đang được cập nhật. Vui lòng quay lại sau hoặc liên hệ quản trị viên.
+            </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tên gian hàng</TableHead>
-                  <TableHead>Công ty</TableHead>
-                  <TableHead>Nhân viên</TableHead>
-                  <TableHead className="text-right">Sinh viên</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {booths.map((booth) => (
-                  <TableRow key={booth.id}>
-                    <TableCell className="font-medium">{booth.name}</TableCell>
-                    <TableCell>{booth.company}</TableCell>
-                    <TableCell>{booth.staffName}</TableCell>
-                    <TableCell className="text-right font-semibold">{booth.visitorCount}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={booth.visitorCount > 30 ? 'default' : 'secondary'}
-                        className="bg-primary/10 text-primary"
-                      >
-                        {booth.visitorCount > 30 ? 'Popular' : 'Active'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <>
+            {/* Mobile View: Cards */}
+            <div className="grid grid-cols-1 gap-4 lg:hidden">
+              {booths.map((b) => (
+                <div key={b.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <span className="font-black text-blue-600 uppercase tracking-tighter">BOOTH {b.name}</span>
+                    <Badge
+                      variant={b.visitorCount > 30 ? 'default' : 'secondary'}
+                      className={cn(
+                        "rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest border-0",
+                        b.visitorCount > 30 ? "bg-orange-500 text-white" : "bg-teal-500 text-white"
+                      )}
+                    >
+                      {b.visitorCount > 30 ? 'Popular' : 'Active'}
+                    </Badge>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-lg">{b.company}</h4>
+                    <p className="text-sm text-slate-500 font-medium">Nhân viên: {b.staffName || '---'}</p>
+                  </div>
+                  <div className="pt-2 flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Lượt ghé thăm</span>
+                    <span className="text-xl font-black text-slate-900">{b.visitorCount}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden lg:block overflow-hidden border border-slate-100 rounded-2xl bg-white shadow-sm">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-slate-50">
+                    <TableRow>
+                      <TableHead className="font-bold text-slate-900">Tên gian hàng</TableHead>
+                      <TableHead className="font-bold text-slate-900">Công ty</TableHead>
+                      <TableHead className="font-bold text-slate-900">Nhân viên</TableHead>
+                      <TableHead className="font-bold text-slate-900 text-right">Lượt quét</TableHead>
+                      <TableHead className="font-bold text-slate-900 text-center">Trạng thái</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {booths.map((booth) => (
+                      <TableRow key={booth.id} className="hover:bg-slate-50/50 transition-colors">
+                        <TableCell className="font-bold text-blue-600">{booth.name}</TableCell>
+                        <TableCell className="font-semibold">{booth.company}</TableCell>
+                        <TableCell className="text-slate-500 font-medium">{booth.staffName || '---'}</TableCell>
+                        <TableCell className="text-right font-black text-lg text-slate-900">{booth.visitorCount}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={booth.visitorCount > 30 ? 'default' : 'secondary'}
+                            className={cn(
+                              "rounded-full font-bold text-[10px] uppercase tracking-widest",
+                              booth.visitorCount > 30 ? "bg-orange-100 text-orange-600 hover:bg-orange-100" : "bg-teal-100 text-teal-600 hover:bg-teal-100"
+                            )}
+                          >
+                            {booth.visitorCount > 30 ? 'Popular' : 'Active'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

@@ -172,7 +172,7 @@ export function QrScanner({ onScan, isProcessing = false }: QrScannerProps) {
             onClick={stopScanner}
             variant="outline"
             disabled={isProcessing}
-            className="flex-1 gap-2 border-slate-300"
+            className="flex-1 gap-2 border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl h-12 font-bold"
           >
             <CameraOff className="h-4 w-4" />
             Dừng camera
@@ -181,7 +181,7 @@ export function QrScanner({ onScan, isProcessing = false }: QrScannerProps) {
           <Button
             onClick={startScanner}
             disabled={isStarting || isProcessing}
-            className="flex-1 gap-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 text-white shadow-lg shadow-cyan-500/30 transition-transform hover:scale-[1.01] hover:from-blue-700 hover:via-cyan-600 hover:to-emerald-600"
+            className="flex-1 gap-2 bg-linear-to-r from-blue-600 to-blue-400 text-white shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.01] hover:from-blue-700 hover:to-blue-500 rounded-xl h-12 font-bold"
           >
             {isStarting
               ? <Loader2 className="h-4 w-4 animate-spin" />

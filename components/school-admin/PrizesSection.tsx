@@ -141,7 +141,7 @@ function PrizeCard({ prize }: { prize: PrizeData }) {
               Chưa có sinh viên đủ điều kiện
             </p>
           ) : (
-            <div className="max-h-80 overflow-y-auto">
+            <div className="max-h-80 overflow-y-auto overflow-x-auto">
               <Table>
                 <TableHeader className="sticky top-0 bg-muted/90">
                   <TableRow>

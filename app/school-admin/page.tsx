@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { DashboardLayout } from '@/components/DashboardLayout'
@@ -12,6 +13,7 @@ import { DistributionChart } from '@/components/analytics/DistributionChart'
 import { AreaTrendsChart } from '@/components/analytics/AreaTrendsChart'
 import { ComparisonBarChart } from '@/components/analytics/ComparisonBarChart'
 import { HeatmapGrid } from '@/components/analytics/HeatmapGrid'
+import { SummaryMetric } from '@/components/SummaryMetric'
 import {
   Users,
   Building2,
@@ -26,6 +28,7 @@ import {
   SearchIcon,
   Gift,
   Settings2,
+  QrCode,
 } from 'lucide-react'
 import { Booth } from '@/lib/types'
 import { StudentCheckinList } from '@/components/school-admin/StudentCheckinList'
@@ -56,6 +59,7 @@ async function fetchBoothsRaw() {
 }
 
 export default function SchoolAdminDashboard() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
   const [isExporting, setIsExporting] = useState(false)
 
@@ -178,24 +182,52 @@ export default function SchoolAdminDashboard() {
       case 'overview':
         return (
           <div className="space-y-6">
+            <div className="flex items-center justify-between px-1">
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Thống kê sự kiện</h3>
+                <p className="text-sm text-muted-foreground italic">Cập nhật dữ liệu thời gian thực</p>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleExport}
+                disabled={isExporting}
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/10"
+              >
+                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                <span className="hidden sm:inline">{isExporting ? 'Đang xuất...' : 'Xuất báo cáo Excel'}</span>
+                <span className="sm:hidden">Xuất Excel</span>
+              </Button>
+            </div>
             {/* Key Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { label: 'Sinh viên thăm quan', value: totalVisitors,         icon: Users      },
-                { label: 'Gian hàng',            value: totalBooths,           icon: Building2  },
-                { label: 'Tổng lượt quét',       value: totalScans,            icon: Activity   },
-                { label: 'Quét/gian hàng',       value: avgScans.toFixed(0),   icon: TrendingUp },
-              ].map((item, i) => (
-                <div key={i} className="bg-white p-4 rounded-lg border border-border/50">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">{item.label}</p>
-                      <p className="text-3xl font-bold text-foreground">{item.value}</p>
-                    </div>
-                    <item.icon className="h-5 w-5 text-blue-600 opacity-50" />
-                  </div>
-                </div>
-              ))}
+              <SummaryMetric
+                label="Sinh viên tham quan"
+                value={totalVisitors}
+                icon={Users}
+                isLoading={isFetching}
+                description="Tổng số SV duy nhất"
+              />
+              <SummaryMetric
+                label="Gian hàng"
+                value={totalBooths}
+                icon={Building2}
+                isLoading={isFetching}
+                description="Tổng số gian hàng"
+              />
+              <SummaryMetric
+                label="Tổng lượt quét"
+                value={totalScans}
+                icon={Activity}
+                isLoading={isFetching}
+                description="Toàn sự kiện"
+              />
+              <SummaryMetric
+                label="Quét/Gian hàng"
+                value={avgScans.toFixed(0)}
+                icon={TrendingUp}
+                isLoading={isFetching}
+                description="Hiệu suất trung bình"
+              />
             </div>
 
             {/* Hourly chart */}
@@ -325,42 +357,41 @@ export default function SchoolAdminDashboard() {
   }
 
   return (
-    <DashboardLayout
-      title="Quản lý sự kiện"
-      subtitle="DUT Job Fair 2026"
-      navItems={navItems}
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      headerActions={
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isFetching}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Cập nhật</span>
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting}
-            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
-          >
-            {isExporting
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <Download className="h-4 w-4" />}
-            <span className="hidden sm:inline">
-              {isExporting ? 'Đang xuất...' : 'Xuất Excel'}
-            </span>
-          </Button>
-          <UserProfileHeader />
-        </div>
-      }
-    >
-      {renderContent()}
-    </DashboardLayout>
+    <div className="relative min-h-screen">
+      <DashboardLayout
+        title="Quản lý sự kiện"
+        subtitle="DUT Job Fair 2026"
+        navItems={navItems}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        headerActions={
+          <div className="flex gap-2 items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={isFetching}
+              className="h-9 w-9 rounded-full hover:bg-slate-100"
+            >
+              <RefreshCw className={`h-4 w-4 text-slate-500 ${isFetching ? 'animate-spin' : ''}`} />
+            </Button>
+            <UserProfileHeader />
+          </div>
+        }
+      >
+        {renderContent()}
+      </DashboardLayout>
+
+      {/* Adaptive Scan QR Button (FAB on mobile, widget-like on desktop) */}
+      <div className="fixed bottom-6 right-6 z-50 md:static md:mb-6 md:px-0">
+        <Button
+          onClick={() => router.push('/scanner')}
+          className="h-14 w-14 rounded-full shadow-2xl bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center border-4 border-white md:h-12 md:w-full md:rounded-xl md:border-0 md:shadow-lg md:shadow-orange-500/20 md:gap-3 md:font-bold md:text-base md:mt-2"
+        >
+          <QrCode className="h-7 w-7 md:h-5 md:w-5" />
+          <span className="hidden md:inline uppercase tracking-wider">Mở trình quét QR đổi quà</span>
+        </Button>
+      </div>
+    </div>
   )
 }

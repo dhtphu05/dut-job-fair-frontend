@@ -122,6 +122,43 @@ export default function ScannerPage() {
   const { mutateAsync: scanQr, isPending: isQrScanPending } = useScannerControllerScanByQrData()
   const isProcessing = isCodeScanPending || isQrScanPending
 
+  const playBeep = (type: 'success' | 'duplicate' | 'error' = 'success') => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const oscillator = audioCtx.createOscillator()
+      const gainNode = audioCtx.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(audioCtx.destination)
+
+      if (type === 'success') {
+        oscillator.type = 'sine'
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime) // A5
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime)
+        oscillator.start()
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2)
+        oscillator.stop(audioCtx.currentTime + 0.2)
+      } else if (type === 'duplicate') {
+        oscillator.type = 'square'
+        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime) // A4
+        gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime)
+        oscillator.start()
+        oscillator.stop(audioCtx.currentTime + 0.1)
+        
+        setTimeout(() => {
+          const osc2 = audioCtx.createOscillator()
+          osc2.connect(gainNode)
+          osc2.type = 'square'
+          osc2.frequency.setValueAtTime(440, audioCtx.currentTime)
+          osc2.start()
+          osc2.stop(audioCtx.currentTime + 0.1)
+        }, 150)
+      }
+    } catch (e) {
+      console.warn('Could not play scan sound', e)
+    }
+  }
+
   const handleScan = async (qrCode: string) => {
     console.log('[handleScan] called, boothId:', boothId, 'qrCode:', qrCode)
     if (!boothId) {
@@ -151,6 +188,9 @@ export default function ScannerPage() {
       console.log('[handleScan] API result:', result)
 
       if (result.success || result.status === 'duplicate') {
+        // Play success/duplicate sound
+        playBeep(result.status === 'duplicate' ? 'duplicate' : 'success')
+
         const visitorData: Visitor = {
           id: result.visitor?.id || '',
           studentCode: result.visitor?.studentCode || qrPayload?.ma_so_sinh_vien || rawValue,
@@ -197,23 +237,29 @@ export default function ScannerPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-blue-50">
+    <main className="min-h-screen bg-linear-to-br from-background via-background to-blue-50">
       {/* Header */}
       <div className="border-b border-border/40 backdrop-blur-sm bg-background/80">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-3xl font-bold bg-linear-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent truncate">
                 Quét QR Code
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">Theo dõi khách thăm theo thời gian thực</p>
+              <p className="text-[10px] sm:text-sm text-muted-foreground mt-1 truncate">Theo dõi khách thăm theo thời gian thực</p>
             </div>
             <Button
-              onClick={() => router.push('/')}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white border-0"
+              size="sm"
+              onClick={() => {
+                const role = (localStorage.getItem('user_role') || '').toUpperCase()
+                if (role === 'SCHOOL_ADMIN') router.push('/school-admin')
+                else if (role === 'BUSINESS_ADMIN') router.push('/business-admin')
+                else router.push('/')
+              }}
+              className="flex items-center gap-2 bg-linear-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white border-0 shrink-0 h-9 px-4 rounded-full shadow-lg shadow-blue-500/20 transition-all active:scale-95 font-bold"
             >
               <ArrowLeft className="h-4 w-4" />
-              Về trang chủ
+              <span>Quay lại</span>
             </Button>
           </div>
         </div>

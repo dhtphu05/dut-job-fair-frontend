@@ -45,6 +45,7 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token')
       localStorage.removeItem('booth_id')
+      localStorage.removeItem('user_role')
     }
   }
 

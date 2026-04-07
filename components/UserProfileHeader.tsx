@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { LogOut, User } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -14,6 +14,12 @@ import { Button } from '@/components/ui/button'
 import { useAuthControllerGetProfile, useAuthControllerLogout } from '@/lib/api/generated/auth/auth'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
+
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+} from '@/components/ui/avatar'
 
 export function UserProfileHeader() {
     const router = useRouter()
@@ -33,21 +39,25 @@ export function UserProfileHeader() {
             console.error('Logout failed on backend', e)
         } finally {
             localStorage.removeItem('auth_token')
+            localStorage.removeItem('user_role')
+            localStorage.removeItem('booth_id')
             queryClient.clear() // Clear all react-query cache
-            toast.success('Đã đăng xuất')
-            router.push('/login')
+            toast.success('Đã đăng xuất thành công')
+            router.push('/')
         }
     }
 
     const user = profileResponse?.data || (profileResponse as any)?.user || profileResponse
+    const userEmail = user?.email || 'User'
+    const userInitial = userEmail.charAt(0).toUpperCase()
 
     if (isLoading) {
-        return <div className="h-8 w-24 animate-pulse bg-gray-200 rounded-md"></div>
+        return <div className="h-9 w-9 animate-pulse bg-slate-200 rounded-full"></div>
     }
 
     if (!user) {
         return (
-            <Button variant="outline" size="sm" onClick={() => router.push('/login')}>
+            <Button variant="outline" size="sm" onClick={() => router.push('/login')} className="h-9 px-4 rounded-full border-blue-200 text-blue-600 hover:bg-blue-50">
                 Đăng nhập
             </Button>
         )
@@ -56,10 +66,13 @@ export function UserProfileHeader() {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-                        <User className="h-4 w-4 text-blue-600 dark:text-blue-300" />
-                    </div>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 hover:bg-transparent focus-visible:ring-offset-2 focus-visible:ring-blue-600">
+                    <Avatar className="h-9 w-9 border-2 border-blue-100 transition-all hover:scale-105 active:scale-95 shadow-sm">
+                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail}&backgroundColor=2563eb&textColor=ffffff`} />
+                        <AvatarFallback className="bg-blue-600 text-white font-bold text-xs">
+                            {userInitial}
+                        </AvatarFallback>
+                    </Avatar>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
