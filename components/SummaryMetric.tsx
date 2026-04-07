@@ -38,27 +38,35 @@ export function SummaryMetric({
   }
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-slate-100 border-l-4 border-l-amber-400 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300 group">
-      <div className="flex items-start justify-between">
-        <div className="space-y-1">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+    <div className="relative overflow-hidden bg-white p-6 rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-500 group border-l-[6px] border-l-amber-400">
+      <div className="absolute top-0 right-0 -mr-12 -mt-12 w-32 h-32 bg-slate-50 rounded-full blur-3xl opacity-50 group-hover:bg-blue-50 transition-colors duration-500" />
+      
+      <div className="relative flex items-center justify-between gap-4">
+        <div className="space-y-2 flex-1">
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] leading-none mb-1 opacity-80">{label}</p>
           <div className="flex items-baseline gap-2">
-            <h3 className="text-3xl font-black text-slate-900 tracking-tight">{value}</h3>
+            <h3 className="text-[32px] font-black text-slate-900 tracking-tight leading-none group-hover:text-blue-600 transition-colors duration-300">
+              {value}
+            </h3>
             {trend && (
-              <span className={cn(
-                "text-[10px] font-bold px-1.5 py-0.5 rounded-md",
-                trend.positive ? "bg-teal-50 text-teal-600" : "bg-red-50 text-red-600"
+              <div className={cn(
+                "flex items-center gap-0.5 text-[10px] font-bold px-2 py-1 rounded-full",
+                trend.positive ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
               )}>
-                {trend.positive ? '+' : ''}{trend.value}
-              </span>
+                {trend.positive ? '↑' : '↓'} {trend.value}
+              </div>
             )}
           </div>
           {description && (
-            <p className="text-xs text-slate-400 font-medium">{description}</p>
+            <p className="text-[12px] text-slate-400 font-medium tracking-tight mt-1 line-clamp-1">{description}</p>
           )}
         </div>
-        <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:scale-110 transition-all duration-300">
-          <Icon className="h-6 w-6 text-blue-600 group-hover:text-white transition-colors" />
+
+        <div className={cn(
+          "shrink-0 w-16 h-16 rounded-[22px] flex items-center justify-center transition-all duration-500 transform group-hover:scale-110 group-hover:rotate-3 shadow-sm",
+          "bg-slate-50 group-hover:bg-white border border-slate-100 group-hover:shadow-lg group-hover:shadow-blue-500/10"
+        )}>
+          <Icon className="h-8 w-8 text-blue-600 group-hover:animate-pulse" />
         </div>
       </div>
     </div>

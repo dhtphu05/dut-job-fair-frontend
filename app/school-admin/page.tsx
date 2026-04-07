@@ -28,7 +28,7 @@ import {
   SearchIcon,
   Gift,
   Settings2,
-  QrCode,
+  ScanQrCode,
 } from 'lucide-react'
 import { Booth } from '@/lib/types'
 import { StudentCheckinList } from '@/components/school-admin/StudentCheckinList'
@@ -111,17 +111,14 @@ export default function SchoolAdminDashboard() {
     'Sinh viên unique': d.uniqueStudents,
   }))
 
-  // Real booths mapped to the Booth type (BoothsTable wants visitorCount from booth-stats)
-  // We use recentScans booth list from dashboard for visitor counts
-  const boothStatsList: Array<{ id: string; name: string; business: string; totalScans: number }> =
-    (dashboardData?.booths ?? [])
+  // Real booths mapped to the Booth type
   const realBooths: Booth[] = boothsRaw.map((b) => {
     return {
       id: b.id,
       name: b.name,
       company: b.business?.name ?? b.name,
       position: b.location ?? '',
-      visitorCount: 0, // filled by BoothScanStats component
+      visitorCount: 0,
       staffName: '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -134,7 +131,6 @@ export default function SchoolAdminDashboard() {
     if (isExporting) return
     setIsExporting(true)
     try {
-      // Fetch all check-ins (up to 9999) and booth stats in parallel
       const [checkinsRes, boothStatsRes] = await Promise.all([
         customAxiosInstance<any>('/api/school-admin/checkins?page=1&pageSize=9999', { method: 'GET' }),
         customAxiosInstance<any>('/api/school-admin/booth-stats', { method: 'GET' }),
@@ -181,25 +177,50 @@ export default function SchoolAdminDashboard() {
     switch (activeTab) {
       case 'overview':
         return (
-          <div className="space-y-6">
+          <div className="space-y-8">
+            {/* Main QR Card */}
+            <div className="relative overflow-hidden bg-blue-600 rounded-[32px] p-8 shadow-2xl shadow-blue-500/30 text-center space-y-6 group">
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl" />
+              
+              <div 
+                onClick={() => router.push('/scanner')}
+                className="relative mx-auto w-[120px] h-[120px] bg-white/20 backdrop-blur-md rounded-3xl border border-white/30 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+              >
+                <ScanQrCode className="h-16 w-16 text-white" />
+              </div>
+              
+              <div className="space-y-2 relative z-10">
+                <h2 className="text-3xl font-black text-white tracking-tight uppercase">Quét mã QR</h2>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full border border-white/20">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-[10px] font-bold text-white uppercase tracking-widest">Hệ thống sẵn sàng</span>
+                </div>
+              </div>
+              
+              <p className="text-blue-100 text-[11px] font-bold uppercase tracking-widest relative z-10 opacity-80 mt-4">
+                Nhấn để bắt đầu ghi nhận lượt tham gia
+              </p>
+            </div>
+
             <div className="flex items-center justify-between px-1">
               <div className="space-y-1">
                 <h3 className="text-xl font-bold text-slate-900 tracking-tight">Thống kê sự kiện</h3>
-                <p className="text-sm text-muted-foreground italic">Cập nhật dữ liệu thời gian thực</p>
+                <p className="text-sm text-slate-400 italic">Cập nhật dữ liệu thời gian thực</p>
               </div>
               <Button
                 size="sm"
                 onClick={handleExport}
                 disabled={isExporting}
-                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/10"
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
               >
-                {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                <span className="hidden sm:inline">{isExporting ? 'Đang xuất...' : 'Xuất báo cáo Excel'}</span>
-                <span className="sm:hidden">Xuất Excel</span>
+                <Download className="h-4 w-4" />
+                <span>Xuất Excel</span>
               </Button>
             </div>
+            
             {/* Key Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="flex flex-col gap-4">
               <SummaryMetric
                 label="Sinh viên tham quan"
                 value={totalVisitors}
@@ -217,12 +238,12 @@ export default function SchoolAdminDashboard() {
               <SummaryMetric
                 label="Tổng lượt quét"
                 value={totalScans}
-                icon={Activity}
+                icon={ScanQrCode}
                 isLoading={isFetching}
                 description="Toàn sự kiện"
               />
               <SummaryMetric
-                label="Quét/Gian hàng"
+                label="Quét / Gian hàng"
                 value={avgScans.toFixed(0)}
                 icon={TrendingUp}
                 isLoading={isFetching}
@@ -231,166 +252,75 @@ export default function SchoolAdminDashboard() {
             </div>
 
             {/* Hourly chart */}
-            <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
+            <div className="bg-white rounded-[24px] border border-slate-100 p-6 shadow-sm shadow-slate-200/50">
               <ScanChart data={peakHoursData} title="Phân bố lượt quét theo giờ" />
             </div>
-
-            {/* Day-by-day */}
-            {dailyComparison.length > 0 && (
-              <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-                <ComparisonBarChart
-                  data={dailyComparison}
-                  title="Ngày 04/03 vs Ngày 05/03"
-                  dataKeys={[
-                    { key: 'Lượt quét',       color: '#3B82F6', name: 'Lượt quét'       },
-                    { key: 'Sinh viên unique', color: '#10B981', name: 'Sinh viên unique' },
-                  ]}
-                />
-              </div>
-            )}
           </div>
         )
 
       case 'booth-stats':
-        return (
-          <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-            <BoothScanStats />
-          </div>
-        )
-
+        return <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><BoothScanStats /></div>
       case 'analytics':
-        return (
-          <div className="space-y-6">
-            {/* Hourly Trend */}
-            <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-              <AreaTrendsChart
-                data={peakHoursData.map((h) => ({ name: `${h.hour}:00`, value: h.count }))}
-                title="Phân bố sinh viên theo giờ trong ngày"
-                dataKey="value"
-                fill="#3B82F6"
-              />
-            </div>
-
-            {/* Major + Dept distribution */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-                <DistributionChart
-                  data={majorDist.slice(0, 10).map((m) => ({ name: m.major, value: m.count }))}
-                  title="Phân bố sinh viên theo ngành (Top 10)"
-                />
-              </div>
-              <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-                <HeatmapGrid
-                  data={deptDist.map((d) => ({ name: d.department, value: d.count }))}
-                  title="Sinh viên theo khoa"
-                />
-              </div>
-            </div>
-
-            {/* Year distribution */}
-            {yearDist.length > 0 && (
-              <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-                <ComparisonBarChart
-                  data={yearDist.map((y) => ({ name: `Năm ${y.year}`, 'Sinh viên': y.count }))}
-                  title="Phân bố sinh viên theo năm học"
-                  dataKeys={[{ key: 'Sinh viên', color: '#8B5CF6', name: 'Sinh viên' }]}
-                />
-              </div>
-            )}
-
-            {/* Day comparison */}
-            {dailyComparison.length > 0 && (
-              <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-                <ComparisonBarChart
-                  data={dailyComparison}
-                  title="So sánh hai ngày sự kiện"
-                  dataKeys={[
-                    { key: 'Lượt quét',       color: '#3B82F6', name: 'Lượt quét'       },
-                    { key: 'Sinh viên unique', color: '#10B981', name: 'Sinh viên unique' },
-                  ]}
-                />
-              </div>
-            )}
-          </div>
-        )
-
+        return <div className="space-y-6"><AnalyticsContent peakHoursData={peakHoursData} majorDist={majorDist} deptDist={deptDist} yearDist={yearDist} dailyComparison={dailyComparison} /></div>
       case 'checkins':
-        return (
-          <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-            <StudentCheckinList />
-          </div>
-        )
-
+        return <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><StudentCheckinList /></div>
       case 'lookup':
-        return (
-          <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-            <StudentBusinessLookup />
-          </div>
-        )
-
+        return <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><StudentBusinessLookup /></div>
       case 'reward-settings':
         return <RewardMilestonesPanel />
-
       case 'reward-students':
         return <RewardMilestoneStudentsPanel />
-
       case 'rewards':
         return <RewardsRedeemPanel />
-
       case 'booths':
-        return (
-          <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-            <BoothsTable booths={realBooths} isLoading={isFetching} />
-          </div>
-        )
-
+        return <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><BoothsTable booths={realBooths} isLoading={isFetching} /></div>
       case 'prizes':
-        return (
-          <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-            <PrizesSection />
-          </div>
-        )
-
+        return <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><PrizesSection /></div>
       default:
         return null
     }
   }
 
   return (
-    <div className="relative min-h-screen">
-      <DashboardLayout
-        title="Quản lý sự kiện"
-        subtitle="DUT Job Fair 2026"
-        navItems={navItems}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        headerActions={
-          <div className="flex gap-2 items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleRefresh}
-              disabled={isFetching}
-              className="h-9 w-9 rounded-full hover:bg-slate-100"
-            >
-              <RefreshCw className={`h-4 w-4 text-slate-500 ${isFetching ? 'animate-spin' : ''}`} />
-            </Button>
-            <UserProfileHeader />
-          </div>
-        }
-      >
-        {renderContent()}
-      </DashboardLayout>
+    <DashboardLayout
+      title="Quản lý sự kiện"
+      subtitle="DUT JOB FAIR 2026"
+      navItems={navItems}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      headerActions={
+        <div className="flex gap-2 items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isFetching}
+            className="h-9 w-9 rounded-full hover:bg-slate-50"
+          >
+            <RefreshCw className={`h-4 w-4 text-slate-400 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+          <UserProfileHeader />
+        </div>
+      }
+    >
+      {renderContent()}
+    </DashboardLayout>
+  )
+}
 
-      {/* Adaptive Scan QR Button (FAB on mobile, widget-like on desktop) */}
-      <div className="fixed bottom-6 right-6 z-50 md:static md:mb-6 md:px-0">
-        <Button
-          onClick={() => router.push('/scanner')}
-          className="h-14 w-14 rounded-full shadow-2xl bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center border-4 border-white md:h-12 md:w-full md:rounded-xl md:border-0 md:shadow-lg md:shadow-orange-500/20 md:gap-3 md:font-bold md:text-base md:mt-2"
-        >
-          <QrCode className="h-7 w-7 md:h-5 md:w-5" />
-          <span className="hidden md:inline uppercase tracking-wider">Mở trình quét QR đổi quà</span>
-        </Button>
+function AnalyticsContent({ peakHoursData, majorDist, deptDist, yearDist, dailyComparison }: any) {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+        <AreaTrendsChart data={peakHoursData.map((h: any) => ({ name: `${h.hour}:00`, value: h.count }))} title="Phân bố sinh viên theo giờ" dataKey="value" fill="#3B82F6" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+          <DistributionChart data={majorDist.slice(0, 10).map((m: any) => ({ name: m.major, value: m.count }))} title="Top 10 Ngành học" />
+        </div>
+        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+          <HeatmapGrid data={deptDist.map((d: any) => ({ name: d.department, value: d.count }))} title="Sinh viên theo khoa" />
+        </div>
       </div>
     </div>
   )
