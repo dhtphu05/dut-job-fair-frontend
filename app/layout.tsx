@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: 'DUT Jobfair 2026 - Checkin',
-  description: 'Check-in system for DUT Jobfair 2026.',
+  description: 'Hệ thống check-in và hộ chiếu điện tử cho Ngày hội việc làm Bách khoa 2026.',
   keywords: ['job fair', 'qr scanner', 'visitor tracking', 'event management'],
   viewport: {
     width: 'device-width',

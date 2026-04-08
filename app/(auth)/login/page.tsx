@@ -120,8 +120,8 @@ export default function LoginPage() {
         <div className="mx-auto w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-2">
           <Lock className="h-6 w-6 text-blue-600" />
         </div>
-        <CardTitle className="text-2xl font-bold tracking-tight">DUT Job Fair 2026</CardTitle>
-        <CardDescription>Hệ thống quản lý sự kiện</CardDescription>
+        <CardTitle className="text-2xl font-bold tracking-tight">DUT Jobfair 2026 - Checkin</CardTitle>
+        <CardDescription>Hệ thống check-in và hộ chiếu điện tử</CardDescription>
       </CardHeader>
       
       <CardContent>
@@ -151,7 +151,7 @@ export default function LoginPage() {
         <div className="mt-8 flex items-start gap-3 p-3 rounded-lg bg-blue-50/50 border border-blue-100/50">
           <Info className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
           <p className="text-xs text-blue-700 leading-relaxed">
-            <strong>Lưu ý:</strong> Tài khoản truy cập và mật khẩu được cấp trực tiếp bởi Ban Tổ Chức DUT Job Fair. Vui lòng liên hệ BTC nếu bạn chưa có tài khoản.
+            <strong>Lưu ý:</strong> Tài khoản đăng nhập được Ban Tổ Chức cấp cho các đơn vị vận hành hệ thống check-in và hộ chiếu điện tử. Vui lòng liên hệ BTC nếu bạn cần hỗ trợ truy cập.
           </p>
         </div>
       </CardContent>

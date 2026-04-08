@@ -76,13 +76,13 @@ export default function Home() {
 
             {/* Title */}
             <h1 className="text-[32px] sm:text-[48px] font-extrabold text-slate-900 leading-[1.2] mb-6">
-              Cổng Nền Tảng Số Doanh Nghiệp <br className="hidden sm:block" />
-              <span className="text-blue-600 italic">DUT Job Fair 2026</span>
+              Hệ Thống Check-in Và <br className="hidden sm:block" />
+              <span className="text-blue-600 italic">Hộ Chiếu Điện Tử</span>
             </h1>
 
             {/* Subtitle */}
             <p className="text-slate-500 text-sm sm:text-base leading-relaxed mb-10 px-4">
-              Giải pháp công nghệ hỗ trợ nhà tuyển dụng kết nối chủ động và thông minh. Quản lý gian hàng, quét mã QR check-in ứng viên và phân tích dữ liệu tuyển dụng trực tiếp tại khuôn viên Trường Đại học Bách khoa - ĐHĐN.
+              Nền tảng phục vụ Ngày hội việc làm Bách khoa 2026, hỗ trợ check-in bằng mã QR, ghi nhận hành trình tham gia của sinh viên và vận hành hộ chiếu điện tử xuyên suốt sự kiện tại Trường Đại học Bách khoa - Đại học Đà Nẵng.
             </p>
 
             {/* Main Action Button */}
@@ -91,7 +91,7 @@ export default function Home() {
               onClick={() => router.push('/login')}
               className="w-full sm:w-auto min-w-[280px] h-[64px] rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold shadow-xl shadow-blue-500/30 transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
             >
-              Đăng nhập hệ thống
+              Truy cập hệ thống
               <LogIn className="h-6 w-6" />
             </Button>
           </div>
@@ -147,9 +147,9 @@ export default function Home() {
                 </div>
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-1">Quét QR Check-in</h3>
-              <p className="text-blue-600 text-[11px] font-bold uppercase tracking-widest mb-3">Ghi nhận thông tin ứng viên</p>
+              <p className="text-blue-600 text-[11px] font-bold uppercase tracking-widest mb-3">Ghi nhận người tham gia</p>
               <p className="text-slate-500 text-sm leading-relaxed px-4">
-                Công cụ giúp nhà tuyển dụng quét QR của sinh viên Bách khoa, lưu trữ hồ sơ và đánh giá nhanh ứng viên ngay tại gian hàng.
+                Hỗ trợ quét mã QR để xác nhận sinh viên tham gia sự kiện nhanh chóng, đồng bộ dữ liệu theo thời gian thực và hạn chế trùng lặp check-in.
               </p>
             </div>
 
@@ -160,10 +160,10 @@ export default function Home() {
                   <Users className="h-10 w-10 text-white" />
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-1">Quản lý Gian hàng</h3>
-              <p className="text-teal-600 text-[11px] font-bold uppercase tracking-widest mb-3">Theo dõi dữ liệu thực tế</p>
+              <h3 className="text-lg font-bold text-slate-900 mb-1">Hộ chiếu điện tử</h3>
+              <p className="text-teal-600 text-[11px] font-bold uppercase tracking-widest mb-3">Theo dõi hành trình tham gia</p>
               <p className="text-slate-500 text-sm leading-relaxed px-4">
-                Giám sát lượng sinh viên ghé thăm, xuất file (CSV/Excel) danh sách ứng viên tiềm năng để phục vụ chiến dịch tuyển dụng.
+                Ghi nhận các điểm đến, lượt tương tác và các mốc hoàn thành trong ngày hội để sinh viên sử dụng hộ chiếu điện tử xuyên suốt chương trình.
               </p>
             </div>
 
@@ -174,10 +174,10 @@ export default function Home() {
                   <BarChart3 className="h-10 w-10 text-white" />
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-1">Quản lý Sự kiện (BTC)</h3>
-              <p className="text-red-600 text-[11px] font-bold uppercase tracking-widest mb-3">Dành cho Ban Tổ Chức</p>
+              <h3 className="text-lg font-bold text-slate-900 mb-1">Điều hành sự kiện</h3>
+              <p className="text-red-600 text-[11px] font-bold uppercase tracking-widest mb-3">Dành cho ban tổ chức</p>
               <p className="text-slate-500 text-sm leading-relaxed px-4">
-                Điều phối sơ đồ hơn 60 gian hàng doanh nghiệp, theo dõi tổng lượt quét toàn sự kiện và quản lý các mốc đổi quà của sinh viên.
+                Theo dõi lượt check-in, dữ liệu quét QR, tiến độ các mốc hoạt động và hỗ trợ vận hành tập trung cho toàn bộ ngày hội việc làm.
               </p>
             </div>
           </div>
@@ -190,7 +190,7 @@ export default function Home() {
           <div className="mb-4">
             <h4 className="text-blue-700 font-bold tracking-tight mb-2 uppercase">DUT JOB FAIR 2026</h4>
             <p className="text-[10px] font-bold text-slate-500 max-w-md mx-auto leading-relaxed">
-              Phát triển bởi Trung tâm Hỗ trợ sinh viên và Quan hệ Doanh nghiệp - <br /> Trường Đại học Bách khoa, Đại học Đà Nẵng.
+              Hệ thống check-in và hộ chiếu điện tử phục vụ Ngày hội việc làm Bách khoa 2026 tại <br /> Trường Đại học Bách khoa, Đại học Đà Nẵng.
             </p>
           </div>
           
