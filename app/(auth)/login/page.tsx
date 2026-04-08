@@ -67,7 +67,7 @@ export default function LoginPage() {
   }
 
   const renderLoginForm = (idPrefix: string) => (
-    <form onSubmit={handleLogin} className="space-y-4 pt-2">
+    <form onSubmit={handleLogin} className="space-y-4 pt-2" autoComplete="off">
       <div className="space-y-2">
         <Label htmlFor={`${idPrefix}-email`} className="flex items-center gap-2 text-sm font-medium">
           <Mail className="h-4 w-4 text-muted-foreground" /> Email
@@ -76,6 +76,10 @@ export default function LoginPage() {
           id={`${idPrefix}-email`} 
           type="email" 
           placeholder="admin@example.com"
+          name={`${idPrefix}-login-email`}
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
           value={email} 
           onChange={(e) => setEmail(e.target.value)} 
           required 
@@ -91,6 +95,8 @@ export default function LoginPage() {
           id={`${idPrefix}-password`} 
           type="password" 
           placeholder="••••••••"
+          name={`${idPrefix}-login-password`}
+          autoComplete="new-password"
           value={password} 
           onChange={(e) => setPassword(e.target.value)} 
           required 

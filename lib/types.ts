@@ -165,6 +165,71 @@ export interface WorkshopAttendanceExportPayload {
   total: number
 }
 
+export interface WorkshopManagementAccount {
+  id: string
+  email: string
+  name: string
+  isActive: boolean
+  createdAt: string
+  role?: string
+  boothId?: string
+}
+
+export interface WorkshopManagementItem {
+  id: string
+  name: string
+  displayName?: string
+  location: string | null
+  capacity: number
+  qrCode?: string | null
+  type: UnitType
+  totalScans: number
+  uniqueStudents: number
+  hasAccount: boolean
+  account?: WorkshopManagementAccount | null
+}
+
+export interface WorkshopDetailResponse {
+  workshop: {
+    id: string
+    name: string
+    displayName?: string
+    businessId?: string
+    business?: string
+    location: string | null
+    capacity: number
+    qrCode?: string | null
+    type: UnitType
+  }
+  account?: WorkshopManagementAccount | null
+  stats: {
+    totalScans: number
+    uniqueStudents: number
+  }
+  departmentDistribution: Array<{
+    department: string
+    count: number
+  }>
+  recentCheckins: Array<{
+    id: string
+    checkInTime: string
+    student: {
+      id: string
+      fullName: string
+      studentCode: string
+      className?: string | null
+      department?: string | null
+      phone?: string | null
+    }
+  }>
+}
+
+export interface WorkshopAccountCreateInput {
+  email: string
+  password: string
+  name?: string
+}
+
 export interface SchoolTypeStats {
   totalUnits: number
   totalCheckins: number

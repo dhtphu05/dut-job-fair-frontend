@@ -28,16 +28,26 @@ import {
   Settings2,
   ScanQrCode,
 } from 'lucide-react'
-import type { Booth, SchoolTypeStats, UnitType } from '@/lib/types'
+import type {
+  Booth,
+  SchoolTypeStats,
+  UnitType,
+  WorkshopAccountCreateInput,
+  WorkshopManagementItem,
+} from '@/lib/types'
 import { StudentCheckinList } from '@/components/school-admin/StudentCheckinList'
 import { StudentBusinessLookup } from '@/components/school-admin/StudentBusinessLookup'
 import { RewardMilestonesPanel } from '@/components/school-admin/RewardMilestonesPanel'
 import { RewardMilestoneStudentsPanel } from '@/components/school-admin/RewardMilestoneStudentsPanel'
 import { RewardsRedeemPanel } from '@/components/school-admin/RewardsRedeemPanel'
+import { WorkshopAccountDialog } from '@/components/school-admin/WorkshopAccountDialog'
+import { WorkshopManagementTable } from '@/components/school-admin/WorkshopManagementTable'
 import { UserProfileHeader } from '@/components/UserProfileHeader'
 import { customAxiosInstance } from '@/lib/axios-instance'
 import { exportSchoolAdminExcel } from '@/lib/export-excel'
 import { cn, formatVNDateTime } from '@/lib/utils'
+import { createSchoolAdminWorkshopAccount, getSchoolAdminWorkshops } from '@/lib/school-admin-workshops'
+import { toast } from 'sonner'
 
 type DashboardUnit = {
   id: string
@@ -210,6 +220,9 @@ export default function SchoolAdminDashboard() {
   const [activeTab, setActiveTab] = useState('booth-overview')
   const [activeUnitType, setActiveUnitType] = useState<UnitType>('booth')
   const [isExporting, setIsExporting] = useState(false)
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false)
+  const [selectedWorkshop, setSelectedWorkshop] = useState<WorkshopManagementItem | null>(null)
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false)
 
   const { data: dashboardData, isFetching, refetch } = useQuery({
     queryKey: ['school-admin', 'dashboard'],
@@ -227,6 +240,16 @@ export default function SchoolAdminDashboard() {
     queryKey: ['school-admin', 'booths-raw'],
     queryFn: fetchBoothsRaw,
     staleTime: 5 * 60_000,
+  })
+
+  const {
+    data: workshops = [],
+    isFetching: isFetchingWorkshops,
+    refetch: refetchWorkshops,
+  } = useQuery({
+    queryKey: ['school-admin', 'workshops'],
+    queryFn: getSchoolAdminWorkshops,
+    staleTime: 60_000,
   })
 
   const overallStats = dashboardData?.stats ?? {}
@@ -296,6 +319,36 @@ export default function SchoolAdminDashboard() {
     refetch()
     refetchStats()
     refetchBooths()
+    refetchWorkshops()
+  }
+
+  const handleOpenWorkshopAccount = (workshop: WorkshopManagementItem) => {
+    setSelectedWorkshop(workshop)
+    setAccountDialogOpen(true)
+  }
+
+  const handleCreateWorkshopAccount = async (data: WorkshopAccountCreateInput) => {
+    if (!selectedWorkshop) return
+
+    setIsCreatingAccount(true)
+    try {
+      await createSchoolAdminWorkshopAccount(selectedWorkshop.id, data)
+      toast.success('Đã tạo tài khoản cho workshop')
+      setAccountDialogOpen(false)
+      setSelectedWorkshop(null)
+      await refetchWorkshops()
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || ''
+      if (message.includes('đã có tài khoản')) {
+        toast.error('Workshop này đã có tài khoản')
+      } else if (message.includes('Email đã tồn tại') || message.includes('Email already')) {
+        toast.error('Email đã được sử dụng')
+      } else {
+        toast.error(message || 'Không thể tạo tài khoản workshop')
+      }
+    } finally {
+      setIsCreatingAccount(false)
+    }
   }
 
   const handleExport = async () => {
@@ -334,6 +387,7 @@ export default function SchoolAdminDashboard() {
   const navItems = [
     { id: 'booth-overview', label: 'Booth doanh nghiệp', icon: <BarChart3 className="h-5 w-5" /> },
     { id: 'workshop-overview', label: 'Hội thảo', icon: <BarChart3 className="h-5 w-5" /> },
+    { id: 'workshop-management', label: 'Quản lý workshop', icon: <Building2 className="h-5 w-5" /> },
     { id: 'booth-stats', label: 'Thống kê đơn vị', icon: <TrendingUp className="h-5 w-5" /> },
     { id: 'analytics', label: 'Phân tích', icon: <LineChart className="h-5 w-5" /> },
     { id: 'checkins', label: 'Check-in SV', icon: <Users className="h-5 w-5" /> },
@@ -460,6 +514,23 @@ export default function SchoolAdminDashboard() {
           </div>
         )
 
+      case 'workshop-management':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Quản lý workshop</h3>
+                <p className="text-sm text-slate-400 italic">Tạo tài khoản đăng nhập và xem chi tiết từng workshop</p>
+              </div>
+            </div>
+            <WorkshopManagementTable
+              items={workshops}
+              isLoading={isFetchingWorkshops}
+              onCreateAccount={handleOpenWorkshopAccount}
+            />
+          </div>
+        )
+
       case 'analytics':
         return (
           <div className="space-y-6">
@@ -536,6 +607,16 @@ export default function SchoolAdminDashboard() {
       }
     >
       {renderContent()}
+      <WorkshopAccountDialog
+        open={accountDialogOpen}
+        workshop={selectedWorkshop}
+        isSubmitting={isCreatingAccount}
+        onOpenChange={(open) => {
+          setAccountDialogOpen(open)
+          if (!open) setSelectedWorkshop(null)
+        }}
+        onSubmit={handleCreateWorkshopAccount}
+      />
     </DashboardLayout>
   )
 }
