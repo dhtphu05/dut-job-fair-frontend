@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { BoothsTable } from '@/components/school-admin/BoothsTable'
 import { PrizesSection } from '@/components/school-admin/PrizesSection'
@@ -17,11 +17,9 @@ import { SummaryMetric } from '@/components/SummaryMetric'
 import {
   Users,
   Building2,
-  Activity,
   TrendingUp,
   Download,
   RefreshCw,
-  Loader2,
   BarChart3,
   Award,
   LineChart,
@@ -30,7 +28,7 @@ import {
   Settings2,
   ScanQrCode,
 } from 'lucide-react'
-import { Booth } from '@/lib/types'
+import type { Booth, SchoolTypeStats, UnitType } from '@/lib/types'
 import { StudentCheckinList } from '@/components/school-admin/StudentCheckinList'
 import { StudentBusinessLookup } from '@/components/school-admin/StudentBusinessLookup'
 import { RewardMilestonesPanel } from '@/components/school-admin/RewardMilestonesPanel'
@@ -39,28 +37,178 @@ import { RewardsRedeemPanel } from '@/components/school-admin/RewardsRedeemPanel
 import { UserProfileHeader } from '@/components/UserProfileHeader'
 import { customAxiosInstance } from '@/lib/axios-instance'
 import { exportSchoolAdminExcel } from '@/lib/export-excel'
+import { cn, formatVNDateTime } from '@/lib/utils'
 
-async function fetchDashboard() {
+type DashboardUnit = {
+  id: string
+  name: string
+  displayName?: string
+  business: string
+  location: string | null
+  capacity: number
+  type?: UnitType
+}
+
+type RecentScan = {
+  id: string
+  checkInTime: string
+  status?: string
+  student: {
+    id: string
+    fullName: string
+    studentCode: string
+  }
+  booth: {
+    id: string
+    name: string
+    displayName?: string
+    business: string
+    type?: UnitType
+  }
+}
+
+type DashboardResponse = {
+  stats?: {
+    totalStudents?: number
+    totalCheckins?: number
+    uniqueVisitors?: number
+    totalBooths?: number
+    totalWorkshops?: number
+    byType?: Partial<Record<UnitType, SchoolTypeStats>>
+  }
+  booths?: DashboardUnit[]
+  recentScans?: RecentScan[]
+}
+
+type StatsResponse = {
+  hourlyDistribution?: Array<{ hour: number; count: number }>
+  majorDistribution?: Array<{ major: string; count: number }>
+  yearDistribution?: Array<{ year: number; count: number }>
+  departmentDistribution?: Array<{ department: string; count: number }>
+  dailyDistribution?: Array<{ date: string; count: number; uniqueStudents: number }>
+  checkinTypeDistribution?: Array<{ type: UnitType; count: number; uniqueStudents: number }>
+}
+
+type BoothApiItem = {
+  id: string
+  name: string
+  displayName?: string
+  location: string | null
+  capacity: number
+  type?: UnitType
+  business?: { id: string; name: string } | string | null
+}
+
+async function fetchDashboard(): Promise<DashboardResponse> {
   const res = await customAxiosInstance<any>('/api/school-admin/dashboard', { method: 'GET' })
-  return (res as any).data
+  return (res as any).data ?? {}
 }
 
-async function fetchStats() {
+async function fetchStats(): Promise<StatsResponse> {
   const res = await customAxiosInstance<any>('/api/school-admin/stats', { method: 'GET' })
-  return (res as any).data
+  return (res as any).data ?? {}
 }
 
-async function fetchBoothsRaw() {
+async function fetchBoothsRaw(): Promise<BoothApiItem[]> {
   const res = await customAxiosInstance<any>('/api/school-admin/booths', { method: 'GET' })
-  return (res as any).data as Array<{
-    id: string; name: string; location: string | null; capacity: number
-    business?: { id: string; name: string }
-  }>
+  return ((res as any).data ?? []) as BoothApiItem[]
+}
+
+function getUnitMeta(type: UnitType) {
+  if (type === 'workshop') {
+    return {
+      title: 'Hội thảo',
+      plural: 'Hội thảo',
+      badgeClass: 'bg-orange-100 text-orange-700 border-transparent',
+      accentClass: 'bg-orange-50 text-orange-700',
+    }
+  }
+
+  return {
+    title: 'Booth doanh nghiệp',
+    plural: 'Booth doanh nghiệp',
+    badgeClass: 'bg-blue-100 text-blue-700 border-transparent',
+    accentClass: 'bg-blue-50 text-blue-700',
+  }
+}
+
+function UnitToggle({
+  activeUnitType,
+  onChange,
+}: {
+  activeUnitType: UnitType
+  onChange: (value: UnitType) => void
+}) {
+  return (
+    <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+      {(['booth', 'workshop'] as UnitType[]).map((type) => {
+        const isActive = activeUnitType === type
+        return (
+          <button
+            key={type}
+            type="button"
+            onClick={() => onChange(type)}
+            className={cn(
+              'rounded-xl px-4 py-2 text-sm font-bold transition-colors',
+              isActive ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
+            )}
+          >
+            {type === 'booth' ? 'Booth doanh nghiệp' : 'Hội thảo'}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function RecentScansPanel({
+  scans,
+  unitType,
+}: {
+  scans: RecentScan[]
+  unitType: UnitType
+}) {
+  const meta = getUnitMeta(unitType)
+
+  return (
+    <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-slate-900">Lượt quét gần đây</h3>
+          <p className="text-sm text-slate-500">Chỉ hiển thị dữ liệu thuộc nhóm {meta.title.toLowerCase()}</p>
+        </div>
+        <Badge className={meta.badgeClass}>{meta.title}</Badge>
+      </div>
+
+      {scans.length === 0 ? (
+        <div className="py-12 text-center text-sm text-slate-500">Chưa có lượt quét nào trong nhóm này</div>
+      ) : (
+        <div className="mt-5 space-y-3">
+          {scans.slice(0, 6).map((scan) => (
+            <div key={scan.id} className="flex items-start justify-between gap-4 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-slate-900">{scan.student.fullName}</p>
+                  <span className="text-xs font-mono text-blue-600">{scan.student.studentCode}</span>
+                </div>
+                <p className="text-sm text-slate-600">{scan.booth.displayName || scan.booth.business || scan.booth.name}</p>
+                <p className="text-xs text-slate-400">{scan.booth.name}</p>
+              </div>
+              <div className="text-right">
+                <Badge className={meta.badgeClass}>{meta.title}</Badge>
+                <p className="mt-2 text-xs font-mono text-slate-500">{formatVNDateTime(scan.checkInTime)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function SchoolAdminDashboard() {
-  const router = useRouter()
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('booth-overview')
+  const [activeUnitType, setActiveUnitType] = useState<UnitType>('booth')
   const [isExporting, setIsExporting] = useState(false)
 
   const { data: dashboardData, isFetching, refetch } = useQuery({
@@ -69,63 +217,86 @@ export default function SchoolAdminDashboard() {
     refetchInterval: 30_000,
   })
 
-  const { data: statsData } = useQuery({
+  const { data: statsData, refetch: refetchStats } = useQuery({
     queryKey: ['school-admin', 'stats'],
     queryFn: fetchStats,
     refetchInterval: 60_000,
   })
 
-  const { data: boothsRaw = [] } = useQuery({
+  const { data: boothsRaw = [], refetch: refetchBooths } = useQuery({
     queryKey: ['school-admin', 'booths-raw'],
     queryFn: fetchBoothsRaw,
     staleTime: 5 * 60_000,
   })
 
-  // ── derived values ─────────────────────────────────────────────────────────
-  const apiStats = dashboardData?.stats ?? {}
-  const totalVisitors   = apiStats.uniqueVisitors   ?? 0
-  const totalBooths     = apiStats.totalBooths      ?? 0
-  const totalScans      = apiStats.totalCheckins     ?? 0
-  const avgScans        = totalBooths ? (totalScans / totalBooths) : 0
+  const overallStats = dashboardData?.stats ?? {}
+  const typeStats = overallStats.byType ?? {}
+  const selectedTypeStats = typeStats[activeUnitType] ?? {
+    totalUnits: 0,
+    totalCheckins: 0,
+    uniqueVisitors: 0,
+  }
 
-  // Hourly distribution for charts
-  const hourlyDist: Array<{ hour: number; count: number }> = statsData?.hourlyDistribution ?? []
+  const allUnits = useMemo(
+    () =>
+      (boothsRaw.length ? boothsRaw : dashboardData?.booths ?? []).map((item) => ({
+        id: item.id,
+        name: item.displayName || item.name,
+        company:
+          typeof item.business === 'string'
+            ? item.business
+            : item.business?.name ?? item.name,
+        position: item.location ?? '',
+        visitorCount: 0,
+        staffName: '',
+        type: item.type,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })) as Booth[],
+    [boothsRaw, dashboardData?.booths],
+  )
+
+  const filteredUnits = useMemo(
+    () => allUnits.filter((item) => item.type === activeUnitType),
+    [activeUnitType, allUnits],
+  )
+
+  const recentScans = dashboardData?.recentScans ?? []
+  const filteredRecentScans = recentScans.filter((item) => item.booth?.type === activeUnitType)
+
+  const hourlyDist = statsData?.hourlyDistribution ?? []
   const peakHoursData = hourlyDist.map((h) => ({ hour: h.hour, count: h.count }))
+  const majorDist = statsData?.majorDistribution ?? []
+  const deptDist = statsData?.departmentDistribution ?? []
+  const yearDist = statsData?.yearDistribution ?? []
+  const dailyDist = statsData?.dailyDistribution ?? []
+  const checkinTypeDistribution = statsData?.checkinTypeDistribution ?? []
 
-  // Major distribution
-  const majorDist: Array<{ major: string; count: number }> = statsData?.majorDistribution ?? []
+  const boothVsWorkshop = [
+    {
+      name: 'Lượt check-in',
+      Booth: checkinTypeDistribution.find((item) => item.type === 'booth')?.count ?? 0,
+      Workshop: checkinTypeDistribution.find((item) => item.type === 'workshop')?.count ?? 0,
+    },
+    {
+      name: 'Sinh viên unique',
+      Booth: checkinTypeDistribution.find((item) => item.type === 'booth')?.uniqueStudents ?? 0,
+      Workshop: checkinTypeDistribution.find((item) => item.type === 'workshop')?.uniqueStudents ?? 0,
+    },
+  ]
 
-  // Department distribution
-  const deptDist: Array<{ department: string; count: number }> = statsData?.departmentDistribution ?? []
-
-  // Year distribution
-  const yearDist: Array<{ year: number; count: number }> = statsData?.yearDistribution ?? []
-
-  // Daily distribution (compare Day 1 vs Day 2)
-  const dailyDist: Array<{ date: string; count: number; uniqueStudents: number }> =
-    statsData?.dailyDistribution ?? []
-
-  const dailyComparison = dailyDist.map((d) => ({
-    name: new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-    'Lượt quét': d.count,
-    'Sinh viên unique': d.uniqueStudents,
-  }))
-
-  // Real booths mapped to the Booth type
-  const realBooths: Booth[] = boothsRaw.map((b) => {
-    return {
-      id: b.id,
-      name: b.name,
-      company: b.business?.name ?? b.name,
-      position: b.location ?? '',
-      visitorCount: 0,
-      staffName: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+  const selectedDistribution =
+    checkinTypeDistribution.find((item) => item.type === activeUnitType) ?? {
+      type: activeUnitType,
+      count: 0,
+      uniqueStudents: 0,
     }
-  })
 
-  const handleRefresh = () => { refetch() }
+  const handleRefresh = () => {
+    refetch()
+    refetchStats()
+    refetchBooths()
+  }
 
   const handleExport = async () => {
     if (isExporting) return
@@ -140,9 +311,9 @@ export default function SchoolAdminDashboard() {
 
       exportSchoolAdminExcel({
         stats: {
-          totalVisitors: totalVisitors,
-          totalBooths: totalBooths,
-          totalScans: totalScans,
+          totalVisitors: overallStats.uniqueVisitors ?? 0,
+          totalBooths: overallStats.totalBooths ?? 0,
+          totalScans: overallStats.totalCheckins ?? 0,
         },
         hourlyDist,
         majorDist,
@@ -161,89 +332,109 @@ export default function SchoolAdminDashboard() {
   }
 
   const navItems = [
-    { id: 'overview',    label: 'Tổng quan',          icon: <BarChart3 className="h-5 w-5" /> },
-    { id: 'booth-stats', label: 'Thống kê gian hàng', icon: <TrendingUp className="h-5 w-5" /> },
-    { id: 'analytics',   label: 'Phân tích',           icon: <LineChart className="h-5 w-5" /> },
-    { id: 'checkins',    label: 'Check-in SV',         icon: <Users className="h-5 w-5" /> },
-    { id: 'lookup',      label: 'Tra cứu SV',          icon: <SearchIcon className="h-5 w-5" /> },
-    { id: 'reward-settings', label: 'Mốc quà',         icon: <Settings2 className="h-5 w-5" /> },
+    { id: 'booth-overview', label: 'Booth doanh nghiệp', icon: <BarChart3 className="h-5 w-5" /> },
+    { id: 'workshop-overview', label: 'Hội thảo', icon: <BarChart3 className="h-5 w-5" /> },
+    { id: 'booth-stats', label: 'Thống kê đơn vị', icon: <TrendingUp className="h-5 w-5" /> },
+    { id: 'analytics', label: 'Phân tích', icon: <LineChart className="h-5 w-5" /> },
+    { id: 'checkins', label: 'Check-in SV', icon: <Users className="h-5 w-5" /> },
+    { id: 'lookup', label: 'Tra cứu SV', icon: <SearchIcon className="h-5 w-5" /> },
+    { id: 'reward-settings', label: 'Mốc quà', icon: <Settings2 className="h-5 w-5" /> },
     { id: 'reward-students', label: 'SV theo mốc quà', icon: <Gift className="h-5 w-5" /> },
-    { id: 'rewards',     label: 'Đổi quà',             icon: <Gift className="h-5 w-5" /> },
-    { id: 'booths',      label: 'Gian hàng',           icon: <Building2 className="h-5 w-5" /> },
-    { id: 'prizes',      label: 'Giải thưởng',         icon: <Award className="h-5 w-5" /> },
+    { id: 'rewards', label: 'Đổi quà', icon: <Gift className="h-5 w-5" /> },
+    { id: 'booths', label: 'Danh sách đơn vị', icon: <Building2 className="h-5 w-5" /> },
+    { id: 'prizes', label: 'Giải thưởng', icon: <Award className="h-5 w-5" /> },
   ]
+
+  const selectedMeta = getUnitMeta(activeUnitType)
+  const totalUnits = activeUnitType === 'workshop'
+    ? overallStats.totalWorkshops ?? selectedTypeStats.totalUnits
+    : overallStats.totalBooths ?? selectedTypeStats.totalUnits
+  const avgScans = totalUnits ? selectedTypeStats.totalCheckins / totalUnits : 0
+
+  const handleTabChange = (tab: string) => {
+    if (tab === 'booth-overview') {
+      setActiveUnitType('booth')
+    } else if (tab === 'workshop-overview') {
+      setActiveUnitType('workshop')
+    }
+
+    setActiveTab(tab)
+  }
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'overview':
+      case 'booth-overview':
+      case 'workshop-overview':
         return (
           <div className="space-y-8">
-            {/* Main QR Card */}
-            <div className="relative overflow-hidden bg-blue-600 rounded-[32px] p-8 shadow-2xl shadow-blue-500/30 text-center space-y-6 group">
-              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-              <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl" />
-              
-              <div 
-                onClick={() => router.push('/scanner')}
-                className="relative mx-auto w-[120px] h-[120px] bg-white/20 backdrop-blur-md rounded-3xl border border-white/30 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
-              >
-                <ScanQrCode className="h-16 w-16 text-white" />
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Thống kê sự kiện theo nhóm</h3>
+                <p className="text-sm text-slate-400 italic">Tách riêng dữ liệu booth doanh nghiệp và workshop</p>
               </div>
-              
-              <div className="space-y-2 relative z-10">
-                <h2 className="text-3xl font-black text-white tracking-tight uppercase">Quét mã QR</h2>
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full border border-white/20">
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  <span className="text-[10px] font-bold text-white uppercase tracking-widest">Hệ thống sẵn sàng</span>
-                </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+                <Button
+                  size="sm"
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Xuất Excel</span>
+                </Button>
               </div>
-              
-              <p className="text-blue-100 text-[11px] font-bold uppercase tracking-widest relative z-10 opacity-80 mt-4">
-                Nhấn để bắt đầu ghi nhận lượt tham gia
-              </p>
             </div>
 
-            <div className="flex items-center justify-between px-1">
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Thống kê sự kiện</h3>
-                <p className="text-sm text-slate-400 italic">Cập nhật dữ liệu thời gian thực</p>
+            <div className="relative overflow-hidden rounded-[32px] bg-slate-950 p-8 text-white shadow-2xl shadow-slate-400/20">
+              <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.35),transparent_55%)]" />
+              <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                <div className="space-y-4">
+                  <Badge className={selectedMeta.badgeClass}>{selectedMeta.title}</Badge>
+                  <div>
+                    <h2 className="text-3xl font-black tracking-tight">{selectedMeta.title}</h2>
+                    <p className="mt-2 max-w-xl text-sm text-slate-300">
+                      Theo dõi KPI riêng, danh sách đơn vị riêng và các lượt quét gần đây cho nhóm {selectedMeta.title.toLowerCase()}.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 rounded-[24px] border border-white/10 bg-white/5 p-4 backdrop-blur">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Tổng đơn vị</p>
+                    <p className="mt-2 text-3xl font-black">{totalUnits}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Sinh viên unique</p>
+                    <p className="mt-2 text-3xl font-black">{selectedTypeStats.uniqueVisitors}</p>
+                  </div>
+                </div>
               </div>
-              <Button
-                size="sm"
-                onClick={handleExport}
-                disabled={isExporting}
-                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
-              >
-                <Download className="h-4 w-4" />
-                <span>Xuất Excel</span>
-              </Button>
             </div>
-            
-            {/* Key Metrics */}
-            <div className="flex flex-col gap-4">
+
+            <div className="grid grid-cols-1 gap-4">
               <SummaryMetric
-                label="Sinh viên tham quan"
-                value={totalVisitors}
+                label="Sinh viên tham gia"
+                value={selectedTypeStats.uniqueVisitors}
                 icon={Users}
                 isLoading={isFetching}
-                description="Tổng số SV duy nhất"
+                description={`Tổng số SV duy nhất của ${selectedMeta.title.toLowerCase()}`}
               />
               <SummaryMetric
-                label="Gian hàng"
-                value={totalBooths}
+                label="Số đơn vị"
+                value={totalUnits}
                 icon={Building2}
                 isLoading={isFetching}
-                description="Tổng số gian hàng"
+                description={`Tổng ${selectedMeta.plural.toLowerCase()}`}
               />
               <SummaryMetric
                 label="Tổng lượt quét"
-                value={totalScans}
+                value={selectedTypeStats.totalCheckins}
                 icon={ScanQrCode}
                 isLoading={isFetching}
-                description="Toàn sự kiện"
+                description={`Toàn bộ ${selectedMeta.title.toLowerCase()}`}
               />
               <SummaryMetric
-                label="Quét / Gian hàng"
+                label="Quét / đơn vị"
                 value={avgScans.toFixed(0)}
                 icon={TrendingUp}
                 isLoading={isFetching}
@@ -251,19 +442,49 @@ export default function SchoolAdminDashboard() {
               />
             </div>
 
-            {/* Hourly chart */}
             <div className="bg-white rounded-[24px] border border-slate-100 p-6 shadow-sm shadow-slate-200/50">
               <ScanChart data={peakHoursData} title="Phân bố lượt quét theo giờ" />
             </div>
+
+            <RecentScansPanel scans={filteredRecentScans} unitType={activeUnitType} />
           </div>
         )
 
       case 'booth-stats':
-        return <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><BoothScanStats /></div>
+        return (
+          <div className="space-y-4">
+            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+            <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+              <BoothScanStats filterType={activeUnitType} />
+            </div>
+          </div>
+        )
+
       case 'analytics':
-        return <div className="space-y-6"><AnalyticsContent peakHoursData={peakHoursData} majorDist={majorDist} deptDist={deptDist} yearDist={yearDist} dailyComparison={dailyComparison} /></div>
+        return (
+          <div className="space-y-6">
+            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+            <AnalyticsContent
+              peakHoursData={peakHoursData}
+              majorDist={majorDist}
+              deptDist={deptDist}
+              selectedMeta={selectedMeta}
+              selectedDistribution={selectedDistribution}
+              boothVsWorkshop={boothVsWorkshop}
+            />
+          </div>
+        )
+
       case 'checkins':
-        return <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><StudentCheckinList /></div>
+        return (
+          <div className="space-y-4">
+            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+            <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+              <StudentCheckinList defaultTypeFilter={activeUnitType} />
+            </div>
+          </div>
+        )
+
       case 'lookup':
         return <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><StudentBusinessLookup /></div>
       case 'reward-settings':
@@ -273,7 +494,18 @@ export default function SchoolAdminDashboard() {
       case 'rewards':
         return <RewardsRedeemPanel />
       case 'booths':
-        return <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><BoothsTable booths={realBooths} isLoading={isFetching} /></div>
+        return (
+          <div className="space-y-4">
+            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+            <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+              <BoothsTable
+                booths={filteredUnits}
+                isLoading={isFetching}
+                title={activeUnitType === 'workshop' ? 'Danh sách hội thảo' : 'Danh sách booth doanh nghiệp'}
+              />
+            </div>
+          </div>
+        )
       case 'prizes':
         return <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><PrizesSection /></div>
       default:
@@ -287,7 +519,7 @@ export default function SchoolAdminDashboard() {
       subtitle="DUT JOB FAIR 2026"
       navItems={navItems}
       activeTab={activeTab}
-      onTabChange={setActiveTab}
+      onTabChange={handleTabChange}
       headerActions={
         <div className="flex gap-2 items-center">
           <Button
@@ -308,18 +540,62 @@ export default function SchoolAdminDashboard() {
   )
 }
 
-function AnalyticsContent({ peakHoursData, majorDist, deptDist, yearDist, dailyComparison }: any) {
+function AnalyticsContent({
+  peakHoursData,
+  majorDist,
+  deptDist,
+  selectedMeta,
+  selectedDistribution,
+  boothVsWorkshop,
+}: {
+  peakHoursData: Array<{ hour: number; count: number }>
+  majorDist: Array<{ major: string; count: number }>
+  deptDist: Array<{ department: string; count: number }>
+  selectedMeta: ReturnType<typeof getUnitMeta>
+  selectedDistribution: { type: UnitType; count: number; uniqueStudents: number }
+  boothVsWorkshop: Array<{ name: string; Booth: number; Workshop: number }>
+}) {
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-        <AreaTrendsChart data={peakHoursData.map((h: any) => ({ name: `${h.hour}:00`, value: h.count }))} title="Phân bố sinh viên theo giờ" dataKey="value" fill="#3B82F6" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <SummaryMetric
+          label={`Lượt check-in ${selectedMeta.title.toLowerCase()}`}
+          value={selectedDistribution.count}
+          icon={ScanQrCode}
+          description="Lấy từ checkinTypeDistribution"
+        />
+        <SummaryMetric
+          label={`Sinh viên unique ${selectedMeta.title.toLowerCase()}`}
+          value={selectedDistribution.uniqueStudents}
+          icon={Users}
+          description="Lấy từ checkinTypeDistribution"
+        />
       </div>
+
+      <ComparisonBarChart
+        data={boothVsWorkshop}
+        title="So sánh booth và workshop"
+        dataKeys={[
+          { key: 'Booth', color: '#2563EB', name: 'Booth doanh nghiệp' },
+          { key: 'Workshop', color: '#F97316', name: 'Hội thảo' },
+        ]}
+      />
+
+      <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+        <AreaTrendsChart
+          data={peakHoursData.map((h) => ({ name: `${h.hour}:00`, value: h.count }))}
+          title="Phân bố sinh viên theo giờ"
+          dataKey="value"
+          fill="#3B82F6"
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-          <DistributionChart data={majorDist.slice(0, 10).map((m: any) => ({ name: m.major, value: m.count }))} title="Top 10 Ngành học" />
+          <DistributionChart data={majorDist.slice(0, 10).map((m) => ({ name: m.major, value: m.count }))} title="Top 10 Ngành học" />
         </div>
         <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-          <HeatmapGrid data={deptDist.map((d: any) => ({ name: d.department, value: d.count }))} title="Sinh viên theo khoa" />
+          <HeatmapGrid data={deptDist.map((d) => ({ name: d.department, value: d.count }))} title="Sinh viên theo khoa" />
         </div>
       </div>
     </div>

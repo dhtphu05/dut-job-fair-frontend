@@ -16,9 +16,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'DUT Job Fair 2026 - Management System',
-  description: 'QR code scanner and admin dashboards for DUT Job Fair 2026. Track visitors, manage prizes, and analyze booth analytics.',
-  generator: 'v0.app',
+  title: 'DUT Jobfair 2026 - Checkin',
+  description: 'Check-in system for DUT Jobfair 2026.',
   keywords: ['job fair', 'qr scanner', 'visitor tracking', 'event management'],
   viewport: {
     width: 'device-width',
@@ -27,21 +26,9 @@ export const metadata: Metadata = {
     viewportFit: 'cover',
   },
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: 'https://res.cloudinary.com/dspt9bcwt/image/upload/v1775529703/logo_tt_hbsnlo.jpg',
+    shortcut: 'https://res.cloudinary.com/dspt9bcwt/image/upload/v1775529703/logo_tt_hbsnlo.jpg',
+    apple: 'https://res.cloudinary.com/dspt9bcwt/image/upload/v1775529703/logo_tt_hbsnlo.jpg',
   },
 }
 

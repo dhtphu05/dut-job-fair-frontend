@@ -197,8 +197,10 @@ export default function ScannerPage() {
           fullName: result.visitor?.fullName || qrPayload?.ho_ten || '',
           email: result.visitor?.email || qrPayload?.email || '',
           phone: result.visitor?.phone || qrPayload?.phone || '',
-          major: result.visitor?.major || qrPayload?.lop || '',
+          major: result.visitor?.major || '',
           year: result.visitor?.year || 0,
+          className: (result.visitor as any)?.className || qrPayload?.lop || '',
+          department: (result.visitor as any)?.department || '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }

@@ -16,12 +16,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { customAxiosInstance } from '@/lib/axios-instance'
 import { BarChart3, Users, QrCode, TrendingUp } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import type { UnitType } from '@/lib/types'
 
 interface BoothStat {
   id: string
   name: string
   business: string
   location: string | null
+  type?: UnitType
   totalScans: number
   uniqueStudents: number
 }
@@ -35,22 +38,46 @@ async function fetchBoothStats(): Promise<BoothStat[]> {
   return (res as any).data ?? []
 }
 
-export function BoothScanStats() {
+function typeBadge(type?: UnitType) {
+  if (type === 'workshop') {
+    return {
+      label: 'Hội thảo',
+      className: 'bg-orange-100 text-orange-700',
+    }
+  }
+
+  return {
+    label: 'Booth',
+    className: 'bg-blue-100 text-blue-700',
+  }
+}
+
+interface BoothScanStatsProps {
+  filterType?: UnitType | 'all'
+}
+
+export function BoothScanStats({ filterType = 'all' }: BoothScanStatsProps) {
   const { data: boothStats = [], isLoading, isError } = useQuery({
     queryKey: ['school-admin', 'booth-stats'],
     queryFn: fetchBoothStats,
     refetchInterval: 30_000,
   })
 
-  const totalScans = boothStats.reduce((s, b) => s + b.totalScans, 0)
-  const totalStudents = boothStats.reduce((s, b) => s + b.uniqueStudents, 0)
-  const topBooth = boothStats.length ? boothStats.reduce((a, b) => (b.totalScans > a.totalScans ? b : a)) : null
+  const filteredStats = filterType === 'all'
+    ? boothStats
+    : boothStats.filter((item) => item.type === filterType)
 
-  const chartData = [...boothStats]
+  const totalScans = filteredStats.reduce((s, b) => s + b.totalScans, 0)
+  const totalStudents = filteredStats.reduce((s, b) => s + b.uniqueStudents, 0)
+  const topBooth = filteredStats.length ? filteredStats.reduce((a, b) => (b.totalScans > a.totalScans ? b : a)) : null
+
+  const chartData = [...filteredStats]
     .sort((a, b) => b.totalScans - a.totalScans)
     .map((b) => ({
       name: b.business.length > 14 ? b.business.slice(0, 14) + '…' : b.business,
       fullName: b.business,
+      unitName: b.name,
+      type: b.type,
       'Tổng lượt quét': b.totalScans,
       'Sinh viên unique': b.uniqueStudents,
     }))
@@ -106,7 +133,7 @@ export function BoothScanStats() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Gian hàng dẫn đầu</p>
+                <p className="text-sm text-muted-foreground mb-1">Đơn vị dẫn đầu</p>
                 <p className="text-lg font-bold leading-tight">{topBooth?.business ?? '—'}</p>
                 {topBooth && (
                   <p className="text-sm text-muted-foreground">{topBooth.totalScans} lượt</p>
@@ -123,7 +150,7 @@ export function BoothScanStats() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Số lượt quét theo gian hàng
+            Số lượt quét theo đơn vị
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -172,14 +199,15 @@ export function BoothScanStats() {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-3 px-2 font-semibold text-muted-foreground">Hạng</th>
-                    <th className="text-left py-3 px-2 font-semibold text-muted-foreground">Gian hàng</th>
+                    <th className="text-left py-3 px-2 font-semibold text-muted-foreground">Đơn vị</th>
+                    <th className="text-left py-3 px-2 font-semibold text-muted-foreground">Loại</th>
                     <th className="text-right py-3 px-2 font-semibold text-muted-foreground">Tổng lượt quét</th>
                     <th className="text-right py-3 px-2 font-semibold text-muted-foreground">Sinh viên unique</th>
                     <th className="text-right py-3 px-2 font-semibold text-muted-foreground">Tỷ lệ quét lại</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {[...boothStats]
+                  {[...filteredStats]
                     .sort((a, b) => b.totalScans - a.totalScans)
                     .map((booth, i) => {
                       const repeatRate = booth.uniqueStudents > 0
@@ -202,7 +230,15 @@ export function BoothScanStats() {
                               #{i + 1}
                             </Badge>
                           </td>
-                          <td className="py-3 px-2 font-medium">{booth.business}</td>
+                          <td className="py-3 px-2 font-medium">
+                            <div className="font-semibold text-slate-900">{booth.business}</div>
+                            <div className="text-xs text-muted-foreground">{booth.name}</div>
+                          </td>
+                          <td className="py-3 px-2">
+                            <Badge className={cn('border-transparent', typeBadge(booth.type).className)}>
+                              {typeBadge(booth.type).label}
+                            </Badge>
+                          </td>
                           <td className="py-3 px-2 text-right font-semibold">{booth.totalScans}</td>
                           <td className="py-3 px-2 text-right">{booth.uniqueStudents}</td>
                           <td className="py-3 px-2 text-right text-muted-foreground">{repeatRate}%</td>

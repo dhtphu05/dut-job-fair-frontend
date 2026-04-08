@@ -13,6 +13,7 @@ import {
   AlertCircle,
   AlertTriangle,
   User,
+  GraduationCap,
   Mail,
   Phone,
   BookOpen,
@@ -90,6 +91,14 @@ export function ScanResultModal({
           <Card className={getStatusColor()}>
             <CardContent className="pt-6 space-y-3">
               <div className="flex items-center gap-3">
+                <GraduationCap className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">MSSV</p>
+                  <p className="font-medium">{visitor.studentCode || 'Chưa có dữ liệu'}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
                 <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">Tên</p>
@@ -97,37 +106,65 @@ export function ScanResultModal({
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Email</p>
-                  <p className="text-sm truncate">{visitor.email}</p>
+              {visitor.email && (
+                <div className="flex items-center gap-3">
+                  <Mail className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="text-sm truncate">{visitor.email}</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Điện thoại</p>
-                  <p className="text-sm">{visitor.phone}</p>
+              {visitor.phone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Điện thoại</p>
+                    <p className="text-sm">{visitor.phone}</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="flex items-center gap-3">
-                <BookOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Ngành</p>
-                  <p className="text-sm">{visitor.major}</p>
+              {visitor.className && (
+                <div className="flex items-center gap-3">
+                  <BookOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Lớp</p>
+                    <p className="text-sm">{visitor.className}</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Năm học</p>
-                  <p className="text-sm">Năm {visitor.year}</p>
+              {visitor.department && (
+                <div className="flex items-center gap-3">
+                  <BookOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Khoa</p>
+                    <p className="text-sm">{visitor.department}</p>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {visitor.major && (
+                <div className="flex items-center gap-3">
+                  <BookOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Ngành</p>
+                    <p className="text-sm">{visitor.major}</p>
+                  </div>
+                </div>
+              )}
+
+              {visitor.year > 0 && (
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Năm học</p>
+                    <p className="text-sm">Năm {visitor.year}</p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

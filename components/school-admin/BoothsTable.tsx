@@ -15,15 +15,30 @@ import { Building2 } from 'lucide-react'
 interface BoothsTableProps {
   booths: Booth[]
   isLoading?: boolean
+  title?: string
 }
 
-export function BoothsTable({ booths, isLoading = false }: BoothsTableProps) {
+function getTypeBadge(type?: Booth['type']) {
+  if (type === 'workshop') {
+    return {
+      label: 'Hội thảo',
+      className: 'bg-orange-100 text-orange-700 hover:bg-orange-100 border-transparent',
+    }
+  }
+
+  return {
+    label: 'Booth',
+    className: 'bg-blue-100 text-blue-700 hover:bg-blue-100 border-transparent',
+  }
+}
+
+export function BoothsTable({ booths, isLoading = false, title = 'Tổng quan đơn vị tham gia' }: BoothsTableProps) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Building2 className="h-5 w-5" />
-          Tổng quan gian hàng
+          {title}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -50,20 +65,27 @@ export function BoothsTable({ booths, isLoading = false }: BoothsTableProps) {
               {booths.map((b) => (
                 <div key={b.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                    <span className="font-black text-blue-600 uppercase tracking-tighter">BOOTH {b.name}</span>
-                    <Badge
-                      variant={b.visitorCount > 30 ? 'default' : 'secondary'}
-                      className={cn(
-                        "rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest border-0",
-                        b.visitorCount > 30 ? "bg-orange-500 text-white" : "bg-teal-500 text-white"
-                      )}
-                    >
-                      {b.visitorCount > 30 ? 'Popular' : 'Active'}
-                    </Badge>
+                    <span className="font-black text-blue-600 uppercase tracking-tighter">{b.name}</span>
+                    <div className="flex items-center gap-2">
+                      <Badge className={cn('rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest', getTypeBadge(b.type).className)}>
+                        {getTypeBadge(b.type).label}
+                      </Badge>
+                      <Badge
+                        variant={b.visitorCount > 30 ? 'default' : 'secondary'}
+                        className={cn(
+                          "rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest border-0",
+                          b.visitorCount > 30 ? "bg-orange-500 text-white" : "bg-teal-500 text-white"
+                        )}
+                      >
+                        {b.visitorCount > 30 ? 'Popular' : 'Active'}
+                      </Badge>
+                    </div>
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 text-lg">{b.company}</h4>
-                    <p className="text-sm text-slate-500 font-medium">Nhân viên: {b.staffName || '---'}</p>
+                    <p className="text-sm text-slate-500 font-medium">
+                      {b.type === 'workshop' ? 'Địa điểm' : 'Nhân viên'}: {b.type === 'workshop' ? (b.position || '---') : (b.staffName || '---')}
+                    </p>
                   </div>
                   <div className="pt-2 flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Lượt ghé thăm</span>
@@ -79,9 +101,10 @@ export function BoothsTable({ booths, isLoading = false }: BoothsTableProps) {
                 <Table>
                   <TableHeader className="bg-slate-50">
                     <TableRow>
-                      <TableHead className="font-bold text-slate-900">Tên gian hàng</TableHead>
-                      <TableHead className="font-bold text-slate-900">Công ty</TableHead>
-                      <TableHead className="font-bold text-slate-900">Nhân viên</TableHead>
+                      <TableHead className="font-bold text-slate-900">Tên đơn vị</TableHead>
+                      <TableHead className="font-bold text-slate-900">Loại</TableHead>
+                      <TableHead className="font-bold text-slate-900">Tên hiển thị</TableHead>
+                      <TableHead className="font-bold text-slate-900">Nhân viên / Địa điểm</TableHead>
                       <TableHead className="font-bold text-slate-900 text-right">Lượt quét</TableHead>
                       <TableHead className="font-bold text-slate-900 text-center">Trạng thái</TableHead>
                     </TableRow>
@@ -90,8 +113,15 @@ export function BoothsTable({ booths, isLoading = false }: BoothsTableProps) {
                     {booths.map((booth) => (
                       <TableRow key={booth.id} className="hover:bg-slate-50/50 transition-colors">
                         <TableCell className="font-bold text-blue-600">{booth.name}</TableCell>
+                        <TableCell>
+                          <Badge className={cn('rounded-full font-bold text-[10px] uppercase tracking-widest', getTypeBadge(booth.type).className)}>
+                            {getTypeBadge(booth.type).label}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="font-semibold">{booth.company}</TableCell>
-                        <TableCell className="text-slate-500 font-medium">{booth.staffName || '---'}</TableCell>
+                        <TableCell className="text-slate-500 font-medium">
+                          {booth.type === 'workshop' ? (booth.position || '---') : (booth.staffName || '---')}
+                        </TableCell>
                         <TableCell className="text-right font-black text-lg text-slate-900">{booth.visitorCount}</TableCell>
                         <TableCell className="text-center">
                           <Badge

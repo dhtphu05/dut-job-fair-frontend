@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import { Download, Search, Filter, CheckCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
-import { formatVNDateTime } from '@/lib/utils'
+import { cn, formatVNDateTime } from '@/lib/utils'
 import {
   Table,
   TableBody,
@@ -15,6 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { customAxiosInstance } from '@/lib/axios-instance'
+import type { UnitType } from '@/lib/types'
 
 interface CheckinItem {
   id: string
@@ -34,6 +36,7 @@ interface CheckinItem {
     id: string
     name: string
     business: string | null
+    type?: UnitType
   }
 }
 
@@ -54,11 +57,34 @@ async function fetchCheckins(page: number): Promise<CheckinsResponse> {
   return (res as any).data
 }
 
-export function StudentCheckinList() {
+interface StudentCheckinListProps {
+  defaultTypeFilter?: UnitType | 'all'
+}
+
+function typeBadge(type?: UnitType) {
+  if (type === 'workshop') {
+    return {
+      label: 'Hội thảo',
+      className: 'bg-orange-100 text-orange-700 border-transparent',
+    }
+  }
+
+  return {
+    label: 'Booth',
+    className: 'bg-blue-100 text-blue-700 border-transparent',
+  }
+}
+
+export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckinListProps) {
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterDept, setFilterDept] = useState<string | null>(null)
   const [filterStatus, setFilterStatus] = useState<string | null>(null)
+  const [filterType, setFilterType] = useState<UnitType | 'all'>(defaultTypeFilter)
+
+  useEffect(() => {
+    setFilterType(defaultTypeFilter)
+  }, [defaultTypeFilter])
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['school-admin', 'checkins', page],
@@ -79,9 +105,10 @@ export function StudentCheckinList() {
         (c.student.className ?? '').toLowerCase().includes(q)
       const matchDept = !filterDept || c.student.department === filterDept
       const matchStatus = !filterStatus || c.status === filterStatus
-      return matchSearch && matchDept && matchStatus
+      const matchType = filterType === 'all' || c.booth.type === filterType
+      return matchSearch && matchDept && matchStatus && matchType
     })
-  }, [items, searchTerm, filterDept, filterStatus])
+  }, [items, searchTerm, filterDept, filterStatus, filterType])
 
   const uniqueDepts = useMemo(
     () => [...new Set(items.map((c) => c.student.department).filter(Boolean))],
@@ -194,6 +221,28 @@ export function StudentCheckinList() {
         </Button>
         <span className="text-muted-foreground self-center mx-1">|</span>
         <Button
+          variant={filterType === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilterType('all')}
+        >
+          Tất cả loại
+        </Button>
+        <Button
+          variant={filterType === 'booth' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilterType('booth')}
+        >
+          Booth doanh nghiệp
+        </Button>
+        <Button
+          variant={filterType === 'workshop' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilterType('workshop')}
+        >
+          Hội thảo
+        </Button>
+        <span className="text-muted-foreground self-center mx-1">|</span>
+        <Button
           variant={filterDept === null ? 'default' : 'outline'}
           size="sm"
           onClick={() => setFilterDept(null)}
@@ -237,7 +286,7 @@ export function StudentCheckinList() {
               <TableHead className="font-semibold">Họ tên</TableHead>
               <TableHead className="font-semibold">Khoa / Lớp</TableHead>
               <TableHead className="font-semibold">Ngành</TableHead>
-              <TableHead className="font-semibold">Gian hàng</TableHead>
+              <TableHead className="font-semibold">Đơn vị</TableHead>
               <TableHead className="font-semibold">Thời gian</TableHead>
               <TableHead className="text-center font-semibold">Phút</TableHead>
               <TableHead className="text-center font-semibold">TT</TableHead>
@@ -259,7 +308,12 @@ export function StudentCheckinList() {
                     {c.student.major ?? '—'}
                   </TableCell>
                   <TableCell className="text-sm">
-                    <div className="font-medium">{c.booth.business ?? c.booth.name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium">{c.booth.business ?? c.booth.name}</div>
+                      <Badge className={cn(typeBadge(c.booth.type).className)}>
+                        {typeBadge(c.booth.type).label}
+                      </Badge>
+                    </div>
                     <div className="text-xs text-muted-foreground">{c.booth.name}</div>
                   </TableCell>
                   <TableCell className="text-sm font-mono whitespace-nowrap">
@@ -321,5 +375,3 @@ export function StudentCheckinList() {
     </div>
   )
 }
-
-

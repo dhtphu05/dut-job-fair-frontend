@@ -7,6 +7,7 @@ export type UserRole = 'visitor' | 'school_admin' | 'business_admin' | 'superadm
 export type ScanStatus = 'success' | 'duplicate' | 'error' | 'pending'
 
 export type PrizeType = 'early_bird' | 'lucky_draw' | 'booth_special'
+export type UnitType = 'booth' | 'workshop'
 
 // User types
 export interface User {
@@ -32,6 +33,8 @@ export interface Visitor {
   phone: string | null
   major: string
   year: number
+  className?: string | null
+  department?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -44,6 +47,7 @@ export interface Booth {
   position: string
   visitorCount: number
   staffName: string
+  type?: UnitType
   createdAt: string
   updatedAt: string
 }
@@ -101,6 +105,70 @@ export interface BoothStats {
   scanCount: number
   uniqueVisitors: number
   topHours: Array<{ hour: number; count: number }>
+}
+
+export interface WorkshopAttendanceItem {
+  stt: number
+  studentId?: string
+  workshopName?: string
+  fullName: string
+  studentCode: string
+  className: string | null
+  department: string | null
+  email?: string | null
+  phone: string | null
+  checkInTime: string
+}
+
+export interface WorkshopAttendanceUnit {
+  id: string
+  name: string
+  displayName?: string
+  location: string | null
+  business: string
+  type: UnitType
+}
+
+export interface WorkshopAttendanceResponse {
+  workshop: WorkshopAttendanceUnit
+  total: number
+  items: WorkshopAttendanceItem[]
+}
+
+export interface WorkshopAttendanceManualInput {
+  fullName: string
+  studentCode: string
+  className?: string
+  department?: string
+  phone?: string
+  email?: string
+  checkInTime?: string
+}
+
+export interface WorkshopAttendanceExportColumn {
+  key: string
+  title: string
+}
+
+export interface WorkshopAttendanceExportPayload {
+  fileName: string
+  sheetName: string
+  workshop: {
+    id: string
+    name: string
+    displayName?: string
+    location?: string | null
+    type: UnitType
+  }
+  columns: WorkshopAttendanceExportColumn[]
+  rows: Array<Record<string, string | number | null>>
+  total: number
+}
+
+export interface SchoolTypeStats {
+  totalUnits: number
+  totalCheckins: number
+  uniqueVisitors: number
 }
 
 export interface SchoolAdminDashboard {
