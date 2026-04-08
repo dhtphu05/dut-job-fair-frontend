@@ -168,7 +168,8 @@ The following endpoints are configured in `lib/constants.ts`:
 - **Accents**: Primary blue shades
 
 ### Typography
-- **Font Family**: Geist (sans-serif)
+- **Font Family**: Inter (sans-serif)
+- **Mono Font**: JetBrains Mono (monospace)
 - **Heading**: Bold weights (600-700)
 - **Body**: Regular weight (400)
 

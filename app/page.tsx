@@ -1,110 +1,220 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { QrCode, BarChart3, Users, Sparkles, TrendingUp, Zap } from 'lucide-react'
+import { 
+  LogIn, 
+  Users, 
+  QrCode, 
+  Gift, 
+  Star,
+  Globe,
+  BarChart3,
+  Menu,
+  Mail
+} from 'lucide-react'
 
 export default function Home() {
   const router = useRouter()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [dashboardPath, setDashboardPath] = useState('/login')
 
-  const modules = [
-    {
-      icon: QrCode,
-      title: 'Quét QR Code',
-      description: 'Quét mã đi kèm với khách',
-      details: 'Theo dõi khách thăm theo thời gian thực với công nghệ quét QR nhanh chóng',
-      color: 'from-blue-500 to-blue-600',
-      iconColor: 'text-blue-600',
-      path: '/scanner',
-    },
-    {
-      icon: BarChart3,
-      title: 'Quản lý sự kiện',
-      description: 'Tổng quan toàn bộ sự kiện',
-      details: 'Theo dõi tất cả gian hàng, quản lý giải thưởng và xem thống kê chi tiết',
-      color: 'from-teal-500 to-teal-600',
-      iconColor: 'text-teal-600',
-      path: '/school-admin',
-    },
-    {
-      icon: Users,
-      title: 'Quản lý gian hàng',
-      description: 'Thống kê gian hàng của bạn',
-      details: 'Theo dõi khách thăm gian hàng và xuất dữ liệu để phân tích',
-      color: 'from-amber-500 to-amber-600',
-      iconColor: 'text-amber-600',
-      path: '/business-admin',
-    },
-  ]
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+      setIsLoggedIn(true)
+      // Check role to determine where to send them
+      const role = (localStorage.getItem('user_role') || '').toUpperCase()
+      if (role === 'SCHOOL_ADMIN') setDashboardPath('/school-admin')
+      else if (role === 'BUSINESS_ADMIN') setDashboardPath('/business-admin')
+      else setDashboardPath('/login') // Default fallback
+    }
+  }, [])
 
   return (
-    <main className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="border-b border-border/50 bg-white">
-        <div className="container mx-auto px-4 py-8 sm:py-12">
-          <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-2">DUT Job Fair 2025</h1>
-          <p className="text-base text-muted-foreground">Quản lý và theo dõi các gian hàng công ty tuyển dụng</p>
-        </div>
-      </div>
+    <main className="min-h-screen bg-[#F1F5F9] font-sans">
+      {/* Navigation Header */}
+      <header className="fixed top-0 z-50 w-full bg-white/90 backdrop-blur-sm border-b border-slate-100">
+        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Image 
+              src="/logo_dut.webp" 
+              alt="DUT Logo" 
+              width={32} 
+              height={32} 
+              className="object-contain"
+            />
+            <span className="text-lg font-black tracking-tight text-blue-700 uppercase">
+              DUT JOB FAIR 2026
+            </span>
+          </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-12 sm:py-16">
-        {/* Module Cards Grid */}
-        <div className="grid md:grid-cols-3 gap-5 mb-16">
-          {modules.map((module) => {
-            const IconComponent = module.icon
-            return (
-              <button
-                key={module.path}
-                onClick={() => router.push(module.path)}
-                className="text-left p-6 rounded-xl border border-border/50 bg-white hover:shadow-md hover:border-border/80 transition-all duration-200"
+          <div className="flex items-center gap-4">
+            {isLoggedIn && (
+              <Button 
+                variant="ghost" 
+                onClick={() => router.push(dashboardPath)}
+                className="text-blue-600 font-bold text-xs uppercase tracking-widest border border-blue-100 hover:bg-blue-50"
               >
-                <div className={`w-12 h-12 rounded-lg ${module.color} bg-opacity-10 flex items-center justify-center mb-4`}>
-                  <IconComponent className="h-6 w-6 text-blue-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-1">{module.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{module.description}</p>
-                <div className="inline-flex items-center text-blue-600 text-sm font-medium">
-                  Truy cập
-                  <span className="ml-2">→</span>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid md:grid-cols-4 gap-4 mb-12">
-          {[
-            { label: 'Tổng khách thăm', value: '655', color: 'bg-blue-50' },
-            { label: 'Gian hàng', value: '6', color: 'bg-teal-50' },
-            { label: 'Lượt quét', value: '1,244', color: 'bg-amber-50' },
-            { label: 'Hôm nay', value: '234', color: 'bg-violet-50' },
-          ].map((stat, i) => (
-            <div key={i} className={`p-4 rounded-lg ${stat.color}`}>
-              <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
-              <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Features */}
-        <div className="bg-white rounded-lg border border-border/50 p-8">
-          <h2 className="text-xl font-bold text-foreground mb-6">Tính năng chính</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { title: 'Quét QR Code', desc: 'Theo dõi khách thăm theo thời gian thực' },
-              { title: 'Thống kê chi tiết', desc: 'Xem dữ liệu khách hàng theo gian hàng' },
-              { title: 'Quản lý sự kiện', desc: 'Quản lý giải thưởng và điểm tham gia' },
-            ].map((item, i) => (
-              <div key={i}>
-                <h4 className="font-semibold text-foreground mb-2">{item.title}</h4>
-                <p className="text-sm text-muted-foreground">{item.desc}</p>
-              </div>
-            ))}
+                Trang quản trị
+              </Button>
+            )}
           </div>
         </div>
-      </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-16 overflow-hidden bg-gradient-to-b from-blue-100 via-blue-50 to-transparent">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col items-center text-center max-w-2xl mx-auto">
+            {/* Pill Badge */}
+            <div className="px-4 py-1 rounded-full bg-white/60 backdrop-blur-sm border border-white text-[10px] font-bold tracking-widest text-blue-600 uppercase mb-8 shadow-sm">
+              ● TRƯỜNG ĐẠI HỌC BÁCH KHOA - ĐẠI HỌC ĐÀ NẴNG
+            </div>
+
+            {/* Title */}
+            <h1 className="text-[32px] sm:text-[48px] font-extrabold text-slate-900 leading-[1.2] mb-6">
+              Cổng Nền Tảng Số Doanh Nghiệp <br className="hidden sm:block" />
+              <span className="text-blue-600 italic">DUT Job Fair 2026</span>
+            </h1>
+
+            {/* Subtitle */}
+            <p className="text-slate-500 text-sm sm:text-base leading-relaxed mb-10 px-4">
+              Giải pháp công nghệ hỗ trợ nhà tuyển dụng kết nối chủ động và thông minh. Quản lý gian hàng, quét mã QR check-in ứng viên và phân tích dữ liệu tuyển dụng trực tiếp tại khuôn viên Trường Đại học Bách khoa - ĐHĐN.
+            </p>
+
+            {/* Main Action Button */}
+            <Button 
+              size="lg"
+              onClick={() => router.push('/login')}
+              className="w-full sm:w-auto min-w-[280px] h-[64px] rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold shadow-xl shadow-blue-500/30 transition-all hover:scale-[1.02] flex items-center justify-center gap-3"
+            >
+              Đăng nhập hệ thống
+              <LogIn className="h-6 w-6" />
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mt-12 sm:mt-16 max-w-5xl mx-auto">
+            <div className="bg-white p-6 rounded-2xl shadow-sm flex flex-col items-center border border-slate-50">
+              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center mb-3">
+                <Users className="h-5 w-5 text-blue-600" />
+              </div>
+              <span className="text-2xl font-black text-slate-900 mb-1">3,000+</span>
+              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider text-center">Sinh viên tham dự</span>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm flex flex-col items-center border border-slate-50">
+              <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center mb-3">
+                <Globe className="h-5 w-5 text-teal-500" />
+              </div>
+              <span className="text-2xl font-black text-slate-900 mb-1">60+</span>
+              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider text-center">Doanh nghiệp</span>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm flex flex-col items-center border border-slate-50">
+              <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center mb-3">
+                <Star className="h-5 w-5 text-orange-500" />
+              </div>
+              <span className="text-2xl font-black text-slate-900 mb-1">7,200+</span>
+              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider text-center">Vị trí tuyển dụng</span>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm flex flex-col items-center border border-slate-50">
+              <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center mb-3">
+                <QrCode className="h-5 w-5 text-red-500" />
+              </div>
+              <span className="text-2xl font-black text-slate-900 mb-1 leading-tight">Đang cập nhật</span>
+              <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider text-center">Lượt quét QR</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Process Section */}
+      <section className="py-24 bg-white">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-2xl font-black text-slate-900 mb-2">Quy trình tham gia</h2>
+          <div className="w-20 h-1 bg-blue-600 mx-auto rounded-full mb-16" />
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 max-w-5xl mx-auto">
+            {/* Module 1 */}
+            <div className="flex flex-col items-center">
+              <div className="relative mb-8">
+                <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+                  <QrCode className="h-10 w-10 text-white" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-1">Quét QR Check-in</h3>
+              <p className="text-blue-600 text-[11px] font-bold uppercase tracking-widest mb-3">Ghi nhận thông tin ứng viên</p>
+              <p className="text-slate-500 text-sm leading-relaxed px-4">
+                Công cụ giúp nhà tuyển dụng quét QR của sinh viên Bách khoa, lưu trữ hồ sơ và đánh giá nhanh ứng viên ngay tại gian hàng.
+              </p>
+            </div>
+
+            {/* Module 2 */}
+            <div className="flex flex-col items-center">
+              <div className="relative mb-8">
+                <div className="w-20 h-20 bg-[#00697d] rounded-2xl flex items-center justify-center shadow-lg shadow-teal-100">
+                  <Users className="h-10 w-10 text-white" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-1">Quản lý Gian hàng</h3>
+              <p className="text-teal-600 text-[11px] font-bold uppercase tracking-widest mb-3">Theo dõi dữ liệu thực tế</p>
+              <p className="text-slate-500 text-sm leading-relaxed px-4">
+                Giám sát lượng sinh viên ghé thăm, xuất file (CSV/Excel) danh sách ứng viên tiềm năng để phục vụ chiến dịch tuyển dụng.
+              </p>
+            </div>
+
+            {/* Module 3 */}
+            <div className="flex flex-col items-center">
+              <div className="relative mb-8">
+                <div className="w-20 h-20 bg-[#B91C1C] rounded-2xl flex items-center justify-center shadow-lg shadow-red-100">
+                  <BarChart3 className="h-10 w-10 text-white" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-1">Quản lý Sự kiện (BTC)</h3>
+              <p className="text-red-600 text-[11px] font-bold uppercase tracking-widest mb-3">Dành cho Ban Tổ Chức</p>
+              <p className="text-slate-500 text-sm leading-relaxed px-4">
+                Điều phối sơ đồ hơn 60 gian hàng doanh nghiệp, theo dõi tổng lượt quét toàn sự kiện và quản lý các mốc đổi quà của sinh viên.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-16 bg-[#F8FAFC]">
+        <div className="container mx-auto px-6 text-center">
+          <div className="mb-4">
+            <h4 className="text-blue-700 font-bold tracking-tight mb-2 uppercase">DUT JOB FAIR 2026</h4>
+            <p className="text-[10px] font-bold text-slate-500 max-w-md mx-auto leading-relaxed">
+              Phát triển bởi Trung tâm Hỗ trợ sinh viên và Quan hệ Doanh nghiệp - <br /> Trường Đại học Bách khoa, Đại học Đà Nẵng.
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mb-8 mt-8">
+            <button className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-blue-600 transition-colors">Privacy Policy</button>
+            <button className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-blue-600 transition-colors">Terms of Service</button>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mb-12">
+            <button className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-blue-600 transition-colors">Contact Support</button>
+            <button className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-blue-600 transition-colors">Event Map</button>
+          </div>
+
+          <div className="flex justify-center gap-6">
+            <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm">
+              <Globe className="h-5 w-5" />
+            </button>
+            <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm">
+              <Mail className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      </footer>
+
     </main>
   )
 }

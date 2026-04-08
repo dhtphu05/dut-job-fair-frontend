@@ -6,10 +6,8 @@ import { Button } from '@/components/ui/button'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { VisitorsList } from '@/components/business-admin/VisitorsList'
 import { BoothTrendsChart } from '@/components/business-admin/BoothTrendsChart'
-import { AreaTrendsChart } from '@/components/analytics/AreaTrendsChart'
-import { ComparisonBarChart } from '@/components/analytics/ComparisonBarChart'
-import { HeatmapGrid } from '@/components/analytics/HeatmapGrid'
-import { Users, Eye, TrendingUp, Calendar, RefreshCw, Download, BarChart3, LineChart, QrCode } from 'lucide-react'
+import { SummaryMetric } from '@/components/SummaryMetric'
+import { Users, Eye, TrendingUp, Calendar, RefreshCw, Download, BarChart3, LineChart, ScanQrCode } from 'lucide-react'
 import { Visitor } from '@/lib/types'
 import { mockPeakHours } from '@/lib/mock-data'
 import { UserProfileHeader } from '@/components/UserProfileHeader'
@@ -30,20 +28,17 @@ export default function BusinessAdminDashboard() {
     setBoothId(localStorage.getItem('booth_id'))
   }, [])
 
-  // Booth stats (real data for overview metrics & chart)
   const { data: boothStatsData } = useBusinessAdminControllerGetBoothStats(
     boothId || '',
     { query: { enabled: !!boothId } }
   )
   const boothStats = (boothStatsData as any)?.data
 
-  // Visitors list (always enabled so count is available on overview tab too)
   const { data: checkinsData, isLoading, refetch } = useBusinessAdminControllerGetVisitors(
     { boothId: boothId || '', pageSize: '100' },
     { query: { enabled: !!boothId } }
   )
 
-  // TransformInterceptor wraps response: { data: { items, total, ... }, status: 200 }
   const visitors: Visitor[] = (checkinsData as any)?.data?.items?.map((item: any) => ({
     id: item.student?.id || item.checkinId,
     studentCode: item.student?.studentCode || '',
@@ -88,7 +83,6 @@ export default function BusinessAdminDashboard() {
     { id: 'visitors', label: 'Danh sách khách', icon: <Users className="h-5 w-5" /> },
   ]
 
-  // Hourly distribution for charts
   const hourlyData = boothStats?.hourlyDistribution?.map((h: any) => ({
     time: `${h.hour}:00`,
     count: h.count,
@@ -98,132 +92,81 @@ export default function BusinessAdminDashboard() {
     switch (activeTab) {
       case 'overview':
         return (
-          <div className="space-y-6">
-            {/* Key Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                {
-                  label: 'Lượt check-in',
-                  value: boothStats?.stats?.totalVisitors ?? visitorsTotal,
-                  icon: Eye,
-                },
-                {
-                  label: 'Khách duy nhất',
-                  value: boothStats?.stats?.uniqueVisitors ?? '—',
-                  icon: Users,
-                },
-                {
-                  label: 'Tỷ lệ quay lại',
-                  value: boothStats?.stats?.totalVisitors && boothStats?.stats?.uniqueVisitors
-                    ? (((boothStats.stats.totalVisitors / boothStats.stats.uniqueVisitors - 1) * 100).toFixed(0) + '%')
-                    : '—',
-                  icon: TrendingUp,
-                },
-                {
-                  label: 'Giờ cao điểm',
-                  value: hourlyData.length > 0
-                    ? `${hourlyData.reduce((a: any, b: any) => (a.count > b.count ? a : b), { count: 0 }).time || '—'}`
-                    : '—',
-                  icon: Calendar,
-                },
-              ].map((item, i) => (
-                <div key={i} className="bg-white p-4 rounded-lg border border-border/50">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">{item.label}</p>
-                      <p className="text-3xl font-bold text-foreground">{item.value}</p>
-                    </div>
-                    <item.icon className="h-5 w-5 text-amber-600 opacity-50" />
-                  </div>
+          <div className="space-y-8">
+            {/* Main QR Card */}
+            <div className="relative overflow-hidden bg-blue-600 rounded-[32px] p-8 shadow-2xl shadow-blue-500/30 text-center space-y-6 group">
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+              
+              <div 
+                onClick={() => router.push('/scanner')}
+                className="relative mx-auto w-[120px] h-[120px] bg-white/20 backdrop-blur-md rounded-3xl border border-white/30 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+              >
+                <ScanQrCode className="h-16 w-16 text-white" />
+              </div>
+              
+              <div className="space-y-2 relative z-10">
+                <h2 className="text-3xl font-black text-white tracking-tight uppercase">Quét mã QR</h2>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full border border-white/20">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-[10px] font-bold text-white uppercase tracking-widest">Gian hàng sẵn sàng</span>
                 </div>
-              ))}
+              </div>
+              
+              <p className="text-blue-100 text-[11px] font-bold uppercase tracking-widest relative z-10 opacity-80 mt-4">
+                Nhấn để bắt đầu quét khách tham quan
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between px-1">
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Thống kê gian hàng</h3>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleExport}
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
+              >
+                <Download className="h-4 w-4" />
+                <span>Xuất CSV</span>
+              </Button>
+            </div>
+
+            {/* Key Metrics */}
+            <div className="flex flex-col gap-4">
+              <SummaryMetric
+                label="Lượt check-in"
+                value={boothStats?.stats?.totalVisitors ?? visitorsTotal}
+                icon={Eye}
+                isLoading={isLoading}
+                description="Tổng lượt quét tại quầy"
+              />
+              <SummaryMetric
+                label="Khách duy nhất"
+                value={boothStats?.stats?.uniqueVisitors ?? '—'}
+                icon={Users}
+                isLoading={isLoading}
+                description="Số sinh viên khác nhau"
+              />
+              <SummaryMetric
+                label="Giờ cao điểm"
+                value={hourlyData.reduce((a: any, b: any) => (a.count > b.count ? a : b), { count: 0 }).time || '—'}
+                icon={Calendar}
+                isLoading={isLoading}
+                description="Thời điểm bận rộn nhất"
+              />
             </div>
 
             {/* Trends */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-                <BoothTrendsChart data={hourlyData} title="Phân bố khách theo giờ" />
-              </div>
-              <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-                <BoothTrendsChart
-                  data={
-                    boothStats?.dailyDistribution?.length
-                      ? boothStats.dailyDistribution.map((d: any) => ({
-                          time: new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-                          count: d.count,
-                        }))
-                      : [{ time: '04/03', count: 0 }, { time: '05/03', count: 0 }]
-                  }
-                  title="Lượt khách theo ngày sự kiện"
-                />
-              </div>
+            <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+              <BoothTrendsChart data={hourlyData} title="Phân bố khách theo giờ" />
             </div>
           </div>
         )
 
       case 'analytics':
-        return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-              <AreaTrendsChart
-                data={hourlyData.map((h: any) => ({ name: h.time, count: h.count }))}
-                title="Phân bố hiệu suất theo giờ"
-                dataKey="count"
-                fill="#F59E0B"
-              />
-            </div>
-
-            {/* Major distribution from real visitor data */}
-            <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-              <HeatmapGrid
-                data={
-                  boothStats?.majorDistribution?.length
-                    ? boothStats.majorDistribution.map((m: any) => ({ name: m.major, value: m.count }))
-                    : [{ name: 'Chưa có dữ liệu', value: 0 }]
-                }
-                title="Phân bố khách theo ngành học"
-              />
-            </div>
-
-            {/* Day 1 vs Day 2 comparison */}
-            <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-              <ComparisonBarChart
-                data={
-                  boothStats?.dailyDistribution?.length
-                    ? boothStats.dailyDistribution.map((d: any) => ({
-                        name: new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-                        'Lượt quét': d.count,
-                        'Khách unique': d.uniqueStudents,
-                      }))
-                    : [
-                        { name: '04/03', 'Lượt quét': 0, 'Khách unique': 0 },
-                        { name: '05/03', 'Lượt quét': 0, 'Khách unique': 0 },
-                      ]
-                }
-                title="So sánh hai ngày sự kiện"
-                dataKeys={[
-                  { key: 'Lượt quét',   color: '#F59E0B', name: 'Lượt quét'   },
-                  { key: 'Khách unique', color: '#3B82F6', name: 'Khách unique' },
-                ]}
-              />
-            </div>
-          </div>
-        )
-
+        return <div className="space-y-6"><div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">Trang phân tích đang phát triển</div></div>
       case 'visitors':
-        return (
-          <div className="space-y-2">
-            {visitorsTotal > 0 && (
-              <p className="text-sm text-muted-foreground px-1">
-                Tổng cộng <span className="font-semibold text-foreground">{visitorsTotal}</span> lượt check-in
-              </p>
-            )}
-            <div className="bg-white rounded-lg border border-border/50 p-4 sm:p-6">
-              <VisitorsList visitors={visitors} isLoading={isLoading} />
-            </div>
-          </div>
-        )
-
+        return <div className="space-y-4"><div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><VisitorsList visitors={visitors} isLoading={isLoading} /></div></div>
       default:
         return null
     }
@@ -232,44 +175,21 @@ export default function BusinessAdminDashboard() {
   return (
     <DashboardLayout
       title="Quản lý gian hàng"
-      subtitle={boothStats?.booth?.name || 'Gian hàng của bạn'}
+      subtitle={boothStats?.booth?.name || 'DUT JOB FAIR 2026'}
       navItems={navItems}
       activeTab={activeTab}
       onTabChange={setActiveTab}
       headerActions={
-        <div className="flex gap-2">
-          {/* Scan QR button – always visible */}
+        <div className="flex gap-2 items-center">
           <Button
-            size="sm"
-            onClick={() => router.push('/scanner')}
-            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
-          >
-            <QrCode className="h-4 w-4" />
-            <span className="hidden sm:inline">Quét QR</span>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
+            variant="ghost"
+            size="icon"
             onClick={handleRefresh}
             disabled={isLoading}
-            className="flex items-center gap-2"
+            className="h-9 w-9 rounded-full hover:bg-slate-50"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Cập nhật</span>
+            <RefreshCw className={`h-4 w-4 text-slate-400 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
-
-          {activeTab === 'visitors' && (
-            <Button
-              size="sm"
-              onClick={handleExport}
-              disabled={visitors.length === 0}
-              className="bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Xuất CSV</span>
-            </Button>
-          )}
           <UserProfileHeader />
         </div>
       }
