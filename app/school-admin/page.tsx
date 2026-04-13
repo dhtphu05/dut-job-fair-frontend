@@ -465,7 +465,7 @@ export default function SchoolAdminDashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <SummaryMetric
                 label="Sinh viên tham gia"
                 value={selectedTypeStats.uniqueVisitors}
@@ -640,35 +640,40 @@ function AnalyticsContent({
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <SummaryMetric
-          label={`Lượt check-in ${selectedMeta.title.toLowerCase()}`}
+          label="Tổng lượt check-in"
           value={selectedDistribution.count}
           icon={ScanQrCode}
-          description="Lấy từ checkinTypeDistribution"
+          description={`Thuộc nhóm ${selectedMeta.title}`}
         />
         <SummaryMetric
-          label={`Sinh viên unique ${selectedMeta.title.toLowerCase()}`}
+          label="Sinh viên unique"
           value={selectedDistribution.uniqueStudents}
           icon={Users}
-          description="Lấy từ checkinTypeDistribution"
+          description={`Số sinh viên khác nhau đã tham gia ${selectedMeta.title.toLowerCase()}`}
         />
       </div>
 
-      <ComparisonBarChart
-        data={boothVsWorkshop}
-        title="So sánh booth và workshop"
-        dataKeys={[
-          { key: 'Booth', color: '#2563EB', name: 'Booth doanh nghiệp' },
-          { key: 'Workshop', color: '#F97316', name: 'Hội thảo' },
-        ]}
-      />
-
-      <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-        <AreaTrendsChart
-          data={peakHoursData.map((h) => ({ name: `${h.hour}:00`, value: h.count }))}
-          title="Phân bố sinh viên theo giờ"
-          dataKey="value"
-          fill="#3B82F6"
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+          <ComparisonBarChart
+            data={[
+              { name: 'Tổng lượt check-in', 'Số lượng': selectedDistribution.count },
+              { name: 'Sinh viên unique', 'Số lượng': selectedDistribution.uniqueStudents },
+            ]}
+            title={`Thống kê ${selectedMeta.title} — lượt check-in và sinh viên`}
+            dataKeys={[
+              { key: 'Số lượng', color: selectedDistribution.type === 'workshop' ? '#F97316' : '#2563EB', name: 'Số lượng' },
+            ]}
+          />
+        </div>
+        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+          <AreaTrendsChart
+            data={peakHoursData.map((h) => ({ name: `${h.hour}:00`, value: h.count }))}
+            title="Phân bố sinh viên theo giờ"
+            dataKey="value"
+            fill="#3B82F6"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
