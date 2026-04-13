@@ -30,16 +30,25 @@ A modern, interactive web application for managing the DUT Job Fair 2025. Featur
 - Secure login with token-based authentication
 - Auto-logout functionality
 
+### 5. API Integration Layer
+- Centralized API client with token handling and consistent error processing
+- Typed API hooks generated from OpenAPI schema using Orval
+- React Query based server-state caching and request lifecycle handling
+- Ready-to-switch architecture between mock data and live backend APIs
+
 ## Technology Stack
 
-- **Framework**: Next.js 16
+- **Framework**: Next.js 16 + React 19 + TypeScript
 - **UI Components**: Radix UI + shadcn/ui
-- **Styling**: Tailwind CSS 4
-- **Charts**: Recharts
+- **Styling**: Tailwind CSS 4 + PostCSS
+- **Data Fetching**: TanStack React Query
+- **Forms & Validation**: React Hook Form + Zod
+- **HTTP Client**: Fetch wrapper + Axios mutator for generated clients
+- **API Codegen**: Orval (OpenAPI -> typed React Query hooks)
+- **Charts & Visualization**: Recharts
+- **QR Scanning**: html5-qrcode, qr-scanner
 - **Icons**: Lucide React
-- **QR Scanning**: html5-qrcode
 - **State Management**: React Hooks + Custom Hooks
-- **Data Tables**: Radix UI Table
 
 ## Project Structure
 

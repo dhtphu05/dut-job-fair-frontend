@@ -230,6 +230,36 @@ export interface WorkshopAccountCreateInput {
   name?: string
 }
 
+export interface BusinessManagementAccount {
+  id: string
+  email: string
+  name: string
+  isActive: boolean
+  createdAt: string
+  role?: string
+  boothId?: string
+}
+
+export interface BusinessManagementItem {
+  id: string
+  name: string
+  displayName?: string
+  location: string | null
+  capacity: number
+  qrCode?: string | null
+  type: UnitType
+  totalScans: number
+  uniqueStudents: number
+  hasAccount: boolean
+  account?: BusinessManagementAccount | null
+}
+
+export interface BusinessAccountCreateInput {
+  email: string
+  password: string
+  name: string
+}
+
 export interface SchoolTypeStats {
   totalUnits: number
   totalCheckins: number

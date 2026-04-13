@@ -34,6 +34,7 @@ import type {
   UnitType,
   WorkshopAccountCreateInput,
   WorkshopManagementItem,
+  BusinessAccountCreateInput,
 } from '@/lib/types'
 import { StudentCheckinList } from '@/components/school-admin/StudentCheckinList'
 import { StudentBusinessLookup } from '@/components/school-admin/StudentBusinessLookup'
@@ -41,6 +42,9 @@ import { RewardMilestonesPanel } from '@/components/school-admin/RewardMilestone
 import { RewardMilestoneStudentsPanel } from '@/components/school-admin/RewardMilestoneStudentsPanel'
 import { RewardsRedeemPanel } from '@/components/school-admin/RewardsRedeemPanel'
 import { WorkshopAccountDialog } from '@/components/school-admin/WorkshopAccountDialog'
+import { BusinessAccountDialog } from '@/components/school-admin/BusinessAccountDialog'
+import { BusinessAccountTable } from '@/components/school-admin/BusinessAccountTable'
+import { getSchoolAdminBusinessAccounts, createSchoolAdminBusinessAccount, deleteSchoolAdminBusinessAccount } from '@/lib/school-admin-business-accounts'
 import { WorkshopManagementTable } from '@/components/school-admin/WorkshopManagementTable'
 import { UserProfileHeader } from '@/components/UserProfileHeader'
 import { customAxiosInstance } from '@/lib/axios-instance'
@@ -223,6 +227,8 @@ export default function SchoolAdminDashboard() {
   const [accountDialogOpen, setAccountDialogOpen] = useState(false)
   const [selectedWorkshop, setSelectedWorkshop] = useState<WorkshopManagementItem | null>(null)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
+  const [businessAccountDialogOpen, setBusinessAccountDialogOpen] = useState(false)
+  const [isCreatingBusinessAccount, setIsCreatingBusinessAccount] = useState(false)
 
   const { data: dashboardData, isFetching, refetch } = useQuery({
     queryKey: ['school-admin', 'dashboard'],
@@ -249,6 +255,16 @@ export default function SchoolAdminDashboard() {
   } = useQuery({
     queryKey: ['school-admin', 'workshops'],
     queryFn: getSchoolAdminWorkshops,
+    staleTime: 60_000,
+  })
+
+  const {
+    data: businessAccounts = [],
+    isFetching: isFetchingBusinessAccounts,
+    refetch: refetchBusinessAccounts,
+  } = useQuery({
+    queryKey: ['school-admin', 'business-accounts'],
+    queryFn: getSchoolAdminBusinessAccounts,
     staleTime: 60_000,
   })
 
@@ -320,6 +336,7 @@ export default function SchoolAdminDashboard() {
     refetchStats()
     refetchBooths()
     refetchWorkshops()
+    refetchBusinessAccounts()
   }
 
   const handleOpenWorkshopAccount = (workshop: WorkshopManagementItem) => {
@@ -348,6 +365,39 @@ export default function SchoolAdminDashboard() {
       }
     } finally {
       setIsCreatingAccount(false)
+    }
+  }
+
+  const handleCreateBusinessAccount = async (data: BusinessAccountCreateInput) => {
+    setIsCreatingBusinessAccount(true)
+    try {
+      await createSchoolAdminBusinessAccount(data)
+      toast.success('Đã tạo tài khoản doanh nghiệp')
+      setBusinessAccountDialogOpen(false)
+      await refetchBusinessAccounts()
+      await refetchBooths()
+      await refetch() // refresh dashboard
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || ''
+      if (message.includes('Email đã được sử dụng') || message.includes('Email đã tồn tại')) {
+        toast.error('Email đã được sử dụng')
+      } else {
+        toast.error(message || 'Không thể tạo tài khoản doanh nghiệp')
+      }
+    } finally {
+      setIsCreatingBusinessAccount(false)
+    }
+  }
+
+  const handleDeleteBusinessAccount = async (userId: string) => {
+    try {
+      await deleteSchoolAdminBusinessAccount(userId)
+      toast.success('Đã xoá tài khoản doanh nghiệp')
+      await refetchBusinessAccounts()
+      await refetchBooths()
+      await refetch() // refresh dashboard
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Không thể xoá tài khoản doanh nghiệp')
     }
   }
 
@@ -388,6 +438,7 @@ export default function SchoolAdminDashboard() {
     { id: 'booth-overview', label: 'Booth doanh nghiệp', icon: <BarChart3 className="h-5 w-5" /> },
     { id: 'workshop-overview', label: 'Hội thảo', icon: <BarChart3 className="h-5 w-5" /> },
     { id: 'workshop-management', label: 'Quản lý workshop', icon: <Building2 className="h-5 w-5" /> },
+    { id: 'business-accounts', label: 'Tài khoản doanh nghiệp', icon: <Building2 className="h-5 w-5" /> },
     { id: 'booth-stats', label: 'Thống kê đơn vị', icon: <TrendingUp className="h-5 w-5" /> },
     { id: 'analytics', label: 'Phân tích', icon: <LineChart className="h-5 w-5" /> },
     { id: 'checkins', label: 'Check-in SV', icon: <Users className="h-5 w-5" /> },
@@ -579,6 +630,23 @@ export default function SchoolAdminDashboard() {
         )
       case 'prizes':
         return <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6"><PrizesSection /></div>
+      case 'business-accounts':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Tài khoản doanh nghiệp</h3>
+                <p className="text-sm text-slate-400 italic">Quản lý và tạo mới tự động gian hàng cùng tài khoản</p>
+              </div>
+            </div>
+            <BusinessAccountTable
+              items={businessAccounts}
+              isLoading={isFetchingBusinessAccounts}
+              onCreateClick={() => setBusinessAccountDialogOpen(true)}
+              onDeleteAccount={handleDeleteBusinessAccount}
+            />
+          </div>
+        )
       default:
         return null
     }
@@ -616,6 +684,12 @@ export default function SchoolAdminDashboard() {
           if (!open) setSelectedWorkshop(null)
         }}
         onSubmit={handleCreateWorkshopAccount}
+      />
+      <BusinessAccountDialog
+        open={businessAccountDialogOpen}
+        isSubmitting={isCreatingBusinessAccount}
+        onOpenChange={setBusinessAccountDialogOpen}
+        onSubmit={handleCreateBusinessAccount}
       />
     </DashboardLayout>
   )
