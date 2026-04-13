@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Download, Search, Filter, CheckCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn, formatVNDateTime } from '@/lib/utils'
 import {
   Table,
@@ -197,68 +198,64 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={filterStatus === null ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterStatus(null)}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Status filter */}
+        <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+          {([null, 'completed', 'active'] as const).map((s) => (
+            <button
+              key={String(s)}
+              type="button"
+              onClick={() => setFilterStatus(s)}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-semibold transition-all',
+                filterStatus === s
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-slate-500 hover:text-slate-800',
+              )}
+            >
+              {s === null ? (
+                <span className="flex items-center gap-1"><Filter className="h-3 w-3" /> Tất cả TT</span>
+              ) : s === 'completed' ? 'Hoàn thành' : 'Đang thăm'}
+            </button>
+          ))}
+        </div>
+
+        {/* Type filter */}
+        <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+          {(['all', 'booth', 'workshop'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setFilterType(t)}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-semibold transition-all',
+                filterType === t
+                  ? 'bg-blue-600 text-white shadow'
+                  : 'text-slate-500 hover:text-slate-800',
+              )}
+            >
+              {t === 'all' ? 'Tất cả loại' : t === 'booth' ? 'Booth DN' : 'Hội thảo'}
+            </button>
+          ))}
+        </div>
+
+        {/* Department filter — Select dropdown */}
+        <Select
+          value={filterDept ?? '__all__'}
+          onValueChange={(v) => setFilterDept(v === '__all__' ? null : v)}
         >
-          <Filter className="h-3 w-3 mr-1" /> Tất cả TT
-        </Button>
-        <Button
-          variant={filterStatus === 'completed' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterStatus('completed')}
-        >
-          Hoàn thành
-        </Button>
-        <Button
-          variant={filterStatus === 'active' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterStatus('active')}
-        >
-          Đang thăm
-        </Button>
-        <span className="text-muted-foreground self-center mx-1">|</span>
-        <Button
-          variant={filterType === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterType('all')}
-        >
-          Tất cả loại
-        </Button>
-        <Button
-          variant={filterType === 'booth' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterType('booth')}
-        >
-          Booth doanh nghiệp
-        </Button>
-        <Button
-          variant={filterType === 'workshop' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterType('workshop')}
-        >
-          Hội thảo
-        </Button>
-        <span className="text-muted-foreground self-center mx-1">|</span>
-        <Button
-          variant={filterDept === null ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterDept(null)}
-        >
-          Tất cả khoa
-        </Button>
-        {uniqueDepts.slice(0, 6).map((d) => (
-          <Button
-            key={d}
-            variant={filterDept === d ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilterDept(d!)}
-          >
-            {d}
-          </Button>
-        ))}
+          <SelectTrigger className="h-9 w-52 rounded-xl border-slate-200 bg-white text-sm font-medium shadow-none">
+            <SelectValue placeholder="Lọc theo khoa..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Tất cả khoa</SelectItem>
+            {uniqueDepts.map((d) => (
+              <SelectItem key={d!} value={d!}>
+                {d}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Summary */}
