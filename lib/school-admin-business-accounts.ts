@@ -1,26 +1,19 @@
-import { customAxiosInstance } from './axios-instance'
+import axiosInstance from './axios-instance'
 import type { BusinessAccountCreateInput, BusinessManagementItem } from './types'
 
 export async function getSchoolAdminBusinessAccounts(): Promise<BusinessManagementItem[]> {
-  const response = await customAxiosInstance<any>('/api/school-admin/business-accounts', {
-    method: 'GET',
-  })
-  return ((response as any).data ?? []) as BusinessManagementItem[]
+  const response = await axiosInstance.get('/api/school-admin/business-accounts')
+  return response.data?.data ?? response.data ?? []
 }
 
 export async function createSchoolAdminBusinessAccount(
   data: BusinessAccountCreateInput,
 ): Promise<any> {
-  const response = await customAxiosInstance<any>('/api/school-admin/business-accounts', {
-    method: 'POST',
-    data,
-  })
-  return (response as any).data
+  const response = await axiosInstance.post('/api/school-admin/business-accounts', data)
+  return response.data
 }
 
 export async function deleteSchoolAdminBusinessAccount(userId: string): Promise<any> {
-  const response = await customAxiosInstance<any>(`/api/school-admin/business-accounts/${userId}`, {
-    method: 'DELETE',
-  })
-  return (response as any).data
+  const response = await axiosInstance.delete(`/api/school-admin/business-accounts/${userId}`)
+  return response.data
 }
