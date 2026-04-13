@@ -217,7 +217,7 @@ function RecentScansPanel({
 }
 
 export default function SchoolAdminDashboard() {
-  const [activeTab, setActiveTab] = useState('booth-overview')
+  const [activeTab, setActiveTab] = useState('event-overview')
   const [activeUnitType, setActiveUnitType] = useState<UnitType>('booth')
   const [isExporting, setIsExporting] = useState(false)
   const [accountDialogOpen, setAccountDialogOpen] = useState(false)
@@ -385,8 +385,7 @@ export default function SchoolAdminDashboard() {
   }
 
   const navItems = [
-    { id: 'booth-overview', label: 'Booth doanh nghiệp', icon: <BarChart3 className="h-5 w-5" /> },
-    { id: 'workshop-overview', label: 'Hội thảo', icon: <BarChart3 className="h-5 w-5" /> },
+    { id: 'event-overview', label: 'Thống kê theo nhóm', icon: <BarChart3 className="h-5 w-5" /> },
     { id: 'workshop-management', label: 'Quản lý workshop', icon: <Building2 className="h-5 w-5" /> },
     { id: 'booth-stats', label: 'Thống kê đơn vị', icon: <TrendingUp className="h-5 w-5" /> },
     { id: 'analytics', label: 'Phân tích', icon: <LineChart className="h-5 w-5" /> },
@@ -406,28 +405,23 @@ export default function SchoolAdminDashboard() {
   const avgScans = totalUnits ? selectedTypeStats.totalCheckins / totalUnits : 0
 
   const handleTabChange = (tab: string) => {
-    if (tab === 'booth-overview') {
-      setActiveUnitType('booth')
-    } else if (tab === 'workshop-overview') {
-      setActiveUnitType('workshop')
-    }
-
     setActiveTab(tab)
   }
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'booth-overview':
-      case 'workshop-overview':
+      case 'event-overview':
         return (
           <div className="space-y-8">
+            {/* Tab toggle — top, same as other sections */}
+            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
                 <h3 className="text-xl font-bold text-slate-900 tracking-tight">Thống kê sự kiện theo nhóm</h3>
                 <p className="text-sm text-slate-400 italic">Tách riêng dữ liệu booth doanh nghiệp và workshop</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
                 <Button
                   size="sm"
                   onClick={handleExport}

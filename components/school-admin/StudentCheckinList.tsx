@@ -321,13 +321,13 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
                   </TableCell>
                   <TableCell className="text-center">
                     {c.status === 'completed' ? (
-                      <div className="flex items-center justify-center gap-1 text-green-600">
-                        <CheckCircle className="h-4 w-4" />
-                      </div>
+                      <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
+                        <CheckCircle className="h-3 w-3" /> Hoàn thành
+                      </span>
                     ) : (
-                      <div className="flex items-center justify-center gap-1 text-blue-600">
-                        <Clock className="h-4 w-4" />
-                      </div>
+                      <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
+                        <Clock className="h-3 w-3" /> Đang thăm
+                      </span>
                     )}
                   </TableCell>
                 </TableRow>
