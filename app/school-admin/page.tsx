@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import axiosInstance from '@/lib/axios-instance'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { BoothsTable } from '@/components/school-admin/BoothsTable'
 import { PrizesSection } from '@/components/school-admin/PrizesSection'
@@ -27,6 +28,8 @@ import {
   Gift,
   Settings2,
   ScanQrCode,
+  Loader2,
+  Maximize2,
 } from 'lucide-react'
 import type {
   Booth,
@@ -48,9 +51,9 @@ import { getSchoolAdminBusinessAccounts, createSchoolAdminBusinessAccount, delet
 import { WorkshopManagementTable } from '@/components/school-admin/WorkshopManagementTable'
 import { UserProfileHeader } from '@/components/UserProfileHeader'
 import { customAxiosInstance } from '@/lib/axios-instance'
-import { exportSchoolAdminExcel } from '@/lib/export-excel'
+import { exportOverviewExcel, exportAnalyticsExcel, exportBoothStatsExcel, exportCheckinsExcel } from '@/lib/export-excel'
 import { cn, formatVNDateTime } from '@/lib/utils'
-import { createSchoolAdminWorkshopAccount, getSchoolAdminWorkshops } from '@/lib/school-admin-workshops'
+import { createSchoolAdminWorkshopAccount, getSchoolAdminWorkshops, updateSchoolAdminWorkshopAccount } from '@/lib/school-admin-workshops'
 import { toast } from 'sonner'
 
 type DashboardUnit = {
@@ -347,13 +350,18 @@ export default function SchoolAdminDashboard() {
     setAccountDialogOpen(true)
   }
 
-  const handleCreateWorkshopAccount = async (data: WorkshopAccountCreateInput) => {
+  const handleSubmitWorkshopAccount = async (data: any, isUpdate: boolean) => {
     if (!selectedWorkshop) return
 
     setIsCreatingAccount(true)
     try {
-      await createSchoolAdminWorkshopAccount(selectedWorkshop.id, data)
-      toast.success('Đã tạo tài khoản cho workshop')
+      if (isUpdate) {
+        await updateSchoolAdminWorkshopAccount(selectedWorkshop.id, data)
+        toast.success('Đã cập nhật thông tin đăng nhập hội thảo')
+      } else {
+        await createSchoolAdminWorkshopAccount(selectedWorkshop.id, data)
+        toast.success('Đã tạo tài khoản cho workshop')
+      }
       setAccountDialogOpen(false)
       setSelectedWorkshop(null)
       await refetchWorkshops()
@@ -361,10 +369,10 @@ export default function SchoolAdminDashboard() {
       const message = error?.response?.data?.message || error?.message || ''
       if (message.includes('đã có tài khoản')) {
         toast.error('Workshop này đã có tài khoản')
-      } else if (message.includes('Email đã tồn tại') || message.includes('Email already')) {
+      } else if (message.includes('Email đã tồn tại') || message.includes('Email already') || message.includes('Email đã được sử dụng')) {
         toast.error('Email đã được sử dụng')
       } else {
-        toast.error(message || 'Không thể tạo tài khoản workshop')
+        toast.error(message || 'Thao tác thất bại')
       }
     } finally {
       setIsCreatingAccount(false)
@@ -404,51 +412,82 @@ export default function SchoolAdminDashboard() {
     }
   }
 
-  const handleExport = async () => {
+  const handleExportOverview = async () => {
     if (isExporting) return
     setIsExporting(true)
     try {
-      const [checkinsRes, boothStatsRes] = await Promise.all([
-        customAxiosInstance<any>('/api/school-admin/checkins?page=1&pageSize=9999', { method: 'GET' }),
-        customAxiosInstance<any>('/api/school-admin/booth-stats', { method: 'GET' }),
-      ])
-      const allCheckins = (checkinsRes as any).data?.items ?? []
-      const allBoothStats = (boothStatsRes as any).data ?? []
-
-      exportSchoolAdminExcel({
-        stats: {
-          totalVisitors: overallStats.uniqueVisitors ?? 0,
-          totalBooths: overallStats.totalBooths ?? 0,
-          totalScans: overallStats.totalCheckins ?? 0,
-        },
-        hourlyDist,
-        majorDist,
-        deptDist,
-        yearDist,
-        dailyDist,
-        boothStats: allBoothStats,
-        checkins: allCheckins,
+      exportOverviewExcel({
+        totalVisitors: overallStats.uniqueVisitors ?? 0,
+        totalBooths: overallStats.totalBooths ?? 0,
+        totalScans: overallStats.totalCheckins ?? 0,
       })
+      toast.success('Báo cáo tổng quan đã được tải')
     } catch (err) {
       console.error('Export failed:', err)
-      alert('Xuất file thất bại. Vui lòng thử lại.')
+      toast.error('Xuất file thất bại. Vui lòng thử lại.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleExportAnalytics = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    try {
+      exportAnalyticsExcel(hourlyDist, majorDist, deptDist, yearDist, dailyDist)
+      toast.success('Dữ liệu phân tích đã được tải')
+    } catch (err) {
+      console.error('Export failed:', err)
+      toast.error('Xuất file thất bại. Vui lòng thử lại.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleExportBoothStats = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    try {
+      const boothStatsRes = await customAxiosInstance<any>('/api/school-admin/booth-stats', { method: 'GET' })
+      const allBoothStats = (boothStatsRes as any).data ?? []
+      exportBoothStatsExcel(allBoothStats)
+      toast.success('Thống kê gian hàng đã được tải')
+    } catch (err) {
+      console.error('Export failed:', err)
+      toast.error('Xuất file thất bại. Vui lòng thử lại.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleExportCheckins = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    try {
+      const checkinsRes = await customAxiosInstance<any>('/api/school-admin/checkins?page=1&pageSize=99999', { method: 'GET' })
+      const allCheckins = (checkinsRes as any).data?.items ?? []
+      exportCheckinsExcel(allCheckins)
+      toast.success('Lịch sử điểm danh đã được tải')
+    } catch (err) {
+      console.error('Export failed:', err)
+      toast.error('Xuất file thất bại. Vui lòng thử lại.')
     } finally {
       setIsExporting(false)
     }
   }
 
   const navItems = [
-    { id: 'event-overview', label: 'Thống kê theo nhóm', icon: <BarChart3 className="h-5 w-5" /> },
-    { id: 'workshop-management', label: 'Quản lý workshop', icon: <Building2 className="h-5 w-5" /> },
-    { id: 'business-accounts', label: 'Tài khoản doanh nghiệp', icon: <Building2 className="h-5 w-5" /> },
+    { id: 'event-overview', label: 'Tổng quan', icon: <BarChart3 className="h-5 w-5" /> },
     { id: 'booth-stats', label: 'Thống kê đơn vị', icon: <TrendingUp className="h-5 w-5" /> },
     { id: 'analytics', label: 'Phân tích', icon: <LineChart className="h-5 w-5" /> },
     { id: 'checkins', label: 'Check-in SV', icon: <Users className="h-5 w-5" /> },
     { id: 'lookup', label: 'Tra cứu SV', icon: <SearchIcon className="h-5 w-5" /> },
+    { id: 'booths', label: 'Danh sách đơn vị', icon: <Building2 className="h-5 w-5" /> },
+    { id: 'workshop-management', label: 'Quản lý workshop', icon: <Building2 className="h-5 w-5" /> },
+    { id: 'business-accounts', label: 'Tài khoản doanh nghiệp', icon: <Building2 className="h-5 w-5" /> },
     { id: 'reward-settings', label: 'Mốc quà', icon: <Settings2 className="h-5 w-5" /> },
     { id: 'reward-students', label: 'SV theo mốc quà', icon: <Gift className="h-5 w-5" /> },
     { id: 'rewards', label: 'Đổi quà', icon: <Gift className="h-5 w-5" /> },
-    { id: 'booths', label: 'Danh sách đơn vị', icon: <Building2 className="h-5 w-5" /> },
     { id: 'prizes', label: 'Giải thưởng', icon: <Award className="h-5 w-5" /> },
   ]
 
@@ -462,6 +501,38 @@ export default function SchoolAdminDashboard() {
     setActiveTab(tab)
   }
 
+  const handleExportBoothVisitors = async () => {
+    setIsExporting(true)
+    try {
+      const rawResponse = await axiosInstance.get('/api/school-admin/booth-visitors/export/excel', {
+        responseType: 'blob'
+      })
+      const contentDisposition = rawResponse.headers['content-disposition']
+      let filename = 'booth-visitors.xls'
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+        if (filenameMatch && filenameMatch.length === 2) {
+          filename = filenameMatch[1]
+        }
+      }
+
+      const url = window.URL.createObjectURL(new Blob([rawResponse.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      link.parentNode?.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      toast.success('Đã tải xuống file Excel danh sách sinh viên thăm quan')
+    } catch (error) {
+      toast.error('Có lỗi xảy ra khi tải file Excel')
+      console.error('Export error:', error)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const renderContent = () => {
     switch (activeTab) {
       case 'event-overview':
@@ -472,45 +543,62 @@ export default function SchoolAdminDashboard() {
 
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
-                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Thống kê sự kiện theo nhóm</h3>
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Tổng quan</h3>
                 <p className="text-sm text-slate-400 italic">Tách riêng dữ liệu booth doanh nghiệp và workshop</p>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
                 <Button
-                  size="sm"
-                  onClick={handleExport}
+                  onClick={handleExportOverview}
                   disabled={isExporting}
-                  className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
                 >
-                  <Download className="h-4 w-4" />
-                  <span>Xuất Excel</span>
+                  {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  <span>Tải Báo Cáo Tổng Quan</span>
                 </Button>
+                <div className="hidden lg:flex gap-3 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    className="flex-1 sm:flex-none font-medium whitespace-nowrap h-10 px-3"
+                    onClick={() => {
+                      window.open('/scanner', '_blank')
+                    }}
+                  >
+                    <Maximize2 className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Scanner</span>
+                  </Button>
+                  <Button
+                    className="flex-1 sm:flex-none font-medium whitespace-nowrap bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/20 rounded-xl h-10 px-3"
+                    onClick={() => setActiveTab('rewards')}
+                  >
+                    <Gift className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Quét QR Đổi Quà</span>
+                    <span className="inline sm:hidden">Đổi Quà SV</span>
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-[32px] bg-slate-950 p-8 text-white shadow-2xl shadow-slate-400/20">
-              <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.35),transparent_55%)]" />
-              <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                <div className="space-y-4">
-                  <Badge className={selectedMeta.badgeClass}>{selectedMeta.title}</Badge>
-                  <div>
-                    <h2 className="text-3xl font-black tracking-tight">{selectedMeta.title}</h2>
-                    <p className="mt-2 max-w-xl text-sm text-slate-300">
-                      Theo dõi KPI riêng, danh sách đơn vị riêng và các lượt quét gần đây cho nhóm {selectedMeta.title.toLowerCase()}.
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 rounded-[24px] border border-white/10 bg-white/5 p-4 backdrop-blur">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Tổng đơn vị</p>
-                    <p className="mt-2 text-3xl font-black">{totalUnits}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Sinh viên unique</p>
-                    <p className="mt-2 text-3xl font-black">{selectedTypeStats.uniqueVisitors}</p>
-                  </div>
+            <div className="lg:hidden relative overflow-hidden bg-purple-600 rounded-[32px] p-8 shadow-2xl shadow-purple-500/30 text-center space-y-6 group">
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/10 rounded-full blur-3xl opacity-50" />
+              
+              <div
+                onClick={() => setActiveTab('rewards')}
+                className="relative mx-auto w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] bg-white/20 backdrop-blur-md rounded-3xl border border-white/30 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+              >
+                <ScanQrCode className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
+              </div>
+
+              <div className="space-y-2 relative z-10">
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">Đổi Quà SV</h2>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full border border-white/20">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-[10px] font-bold text-white uppercase tracking-widest">Sẵn sàng</span>
                 </div>
               </div>
+
+              <p className="text-purple-100 text-[11px] font-bold uppercase tracking-widest relative z-10 opacity-80 mt-4">
+                Nhấn để mở giao diện quét
+              </p>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -555,7 +643,17 @@ export default function SchoolAdminDashboard() {
       case 'booth-stats':
         return (
           <div className="space-y-4">
-            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+              <Button
+                onClick={handleExportBoothStats}
+                disabled={isExporting}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
+              >
+                {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                <span>Xuất Thống Kê Đơn Vị</span>
+              </Button>
+            </div>
             <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
               <BoothScanStats filterType={activeUnitType} />
             </div>
@@ -574,7 +672,7 @@ export default function SchoolAdminDashboard() {
             <WorkshopManagementTable
               items={workshops}
               isLoading={isFetchingWorkshops}
-              onCreateAccount={handleOpenWorkshopAccount}
+              onManageAccount={handleOpenWorkshopAccount}
             />
           </div>
         )
@@ -582,11 +680,22 @@ export default function SchoolAdminDashboard() {
       case 'analytics':
         return (
           <div className="space-y-6">
-            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+              <Button
+                onClick={handleExportAnalytics}
+                disabled={isExporting}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
+              >
+                {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                <span>Tải Báo Kế Toán / Phân Tích</span>
+              </Button>
+            </div>
             <AnalyticsContent
               peakHoursData={peakHoursData}
               majorDist={majorDist}
               deptDist={deptDist}
+              yearDist={yearDist}
               selectedMeta={selectedMeta}
               selectedDistribution={selectedDistribution}
               boothVsWorkshop={boothVsWorkshop}
@@ -597,7 +706,28 @@ export default function SchoolAdminDashboard() {
       case 'checkins':
         return (
           <div className="space-y-4">
-            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto font-medium"
+                  onClick={handleExportBoothVisitors}
+                  disabled={isExporting}
+                >
+                  {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                  DS Sinh viên thăm quan (Đã Lọc)
+                </Button>
+                <Button
+                  className="w-full sm:w-auto font-medium bg-slate-900 text-white hover:bg-slate-800"
+                  onClick={handleExportCheckins}
+                  disabled={isExporting}
+                >
+                  {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                  Toàn bộ Check-in (Chi tiết)
+                </Button>
+              </div>
+            </div>
             <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
               <StudentCheckinList defaultTypeFilter={activeUnitType} />
             </div>
@@ -680,7 +810,7 @@ export default function SchoolAdminDashboard() {
           setAccountDialogOpen(open)
           if (!open) setSelectedWorkshop(null)
         }}
-        onSubmit={handleCreateWorkshopAccount}
+        onSubmit={handleSubmitWorkshopAccount}
       />
       <BusinessAccountDialog
         open={businessAccountDialogOpen}
@@ -696,6 +826,7 @@ function AnalyticsContent({
   peakHoursData,
   majorDist,
   deptDist,
+  yearDist,
   selectedMeta,
   selectedDistribution,
   boothVsWorkshop,
@@ -703,6 +834,7 @@ function AnalyticsContent({
   peakHoursData: Array<{ hour: number; count: number }>
   majorDist: Array<{ major: string; count: number }>
   deptDist: Array<{ department: string; count: number }>
+  yearDist: Array<{ year: number; count: number }>
   selectedMeta: ReturnType<typeof getUnitMeta>
   selectedDistribution: { type: UnitType; count: number; uniqueStudents: number }
   boothVsWorkshop: Array<{ name: string; Booth: number; Workshop: number }>
@@ -747,12 +879,12 @@ function AnalyticsContent({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-          <DistributionChart data={majorDist.slice(0, 10).map((m) => ({ name: m.major, value: m.count }))} title="Top 10 Ngành học" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 overflow-hidden">
+          <HeatmapGrid data={yearDist.map((y) => ({ name: `Năm ${y.year}`, value: y.count }))} title="Số lượng sinh viên theo khóa" />
         </div>
-        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-          <HeatmapGrid data={deptDist.map((d) => ({ name: d.department, value: d.count }))} title="Sinh viên theo khoa" />
+        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 overflow-hidden">
+          <HeatmapGrid data={deptDist.map((d) => ({ name: typeof d.department === 'string' ? d.department.replace(/^Khoa\s+/i, '') : d.department, value: d.count }))} title="Số lượng sinh viên theo khoa" />
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import type {
   WorkshopAccountCreateInput,
   WorkshopDetailResponse,
   WorkshopManagementItem,
+  WorkshopAccountUpdateInput,
 } from '@/lib/types'
 
 export async function getSchoolAdminWorkshops(): Promise<WorkshopManagementItem[]> {
@@ -21,4 +22,36 @@ export async function createSchoolAdminWorkshopAccount(
 ) {
   const response = await axiosInstance.post(`/api/school-admin/workshops/${boothId}/account`, data)
   return response.data?.data
+}
+
+export async function updateSchoolAdminWorkshopAccount(
+  boothId: string,
+  data: WorkshopAccountUpdateInput,
+) {
+  const response = await axiosInstance.patch(`/api/school-admin/workshops/${boothId}/account`, data)
+  return response.data?.data
+}
+
+export const downloadSchoolAdminWorkshopAttendanceExcel = async (boothId: string) => {
+  const response = await axiosInstance.get('/api/business-admin/workshop-attendance/export/excel', {
+    params: { boothId },
+    responseType: 'blob',
+  })
+  const contentDisposition = response.headers['content-disposition']
+  let filename = 'workshop-attendance.xls'
+  if (contentDisposition) {
+    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+    if (filenameMatch && filenameMatch.length === 2) {
+      filename = filenameMatch[1]
+    }
+  }
+
+  const url = window.URL.createObjectURL(new Blob([response.data]))
+  const link = document.createElement('a')
+  link.href = url
+  link.setAttribute('download', filename)
+  document.body.appendChild(link)
+  link.click()
+  link.parentNode?.removeChild(link)
+  window.URL.revokeObjectURL(url)
 }

@@ -80,7 +80,6 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterDept, setFilterDept] = useState<string | null>(null)
-  const [filterStatus, setFilterStatus] = useState<string | null>(null)
   const [filterType, setFilterType] = useState<UnitType | 'all'>(defaultTypeFilter)
 
   useEffect(() => {
@@ -105,11 +104,10 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
         c.student.fullName.toLowerCase().includes(q) ||
         (c.student.className ?? '').toLowerCase().includes(q)
       const matchDept = !filterDept || c.student.department === filterDept
-      const matchStatus = !filterStatus || c.status === filterStatus
       const matchType = filterType === 'all' || c.booth.type === filterType
-      return matchSearch && matchDept && matchStatus && matchType
+      return matchSearch && matchDept && matchType
     })
-  }, [items, searchTerm, filterDept, filterStatus, filterType])
+  }, [items, searchTerm, filterDept, filterType])
 
   const uniqueDepts = useMemo(
     () => [...new Set(items.map((c) => c.student.department).filter(Boolean))],
@@ -118,18 +116,15 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
 
   const handleExport = () => {
     if (filtered.length === 0) return
-    const headers = ['MSSV', 'Tên sinh viên', 'Ngành', 'Khoa', 'Lớp', 'Gian hàng', 'Công ty', 'Thời gian check-in', 'Thời gian (phút)', 'TT']
+    const headers = ['MSSV', 'Tên sinh viên', 'Khoa', 'Lớp', 'Gian hàng', 'Công ty', 'Thời gian check-in']
     const rows = filtered.map((c) => [
       c.student.studentCode,
       c.student.fullName,
-      c.student.major ?? '',
       c.student.department ?? '',
       c.student.className ?? '',
       c.booth.name,
       c.booth.business ?? '',
       c.checkInTime,
-      c.durationMinutes ?? '',
-      c.status === 'completed' ? 'Hoàn thành' : 'Đang thăm',
     ])
     const csv = [headers.join(','), ...rows.map((r) => r.map((v) => `"${v}"`).join(','))].join('\n')
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
@@ -158,12 +153,6 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
       </div>
     )
   }
-
-  const completed = filtered.filter((c) => c.status === 'completed').length
-  const active = filtered.filter((c) => c.status === 'active').length
-  const avgDuration = filtered.length
-    ? Math.round(filtered.reduce((s, c) => s + (c.durationMinutes ?? 0), 0) / filtered.length)
-    : 0
 
   return (
     <div className="space-y-4">
@@ -199,26 +188,6 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        {/* Status filter */}
-        <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
-          {([null, 'completed', 'active'] as const).map((s) => (
-            <button
-              key={String(s)}
-              type="button"
-              onClick={() => setFilterStatus(s)}
-              className={cn(
-                'rounded-lg px-3 py-1.5 text-xs font-semibold transition-all',
-                filterStatus === s
-                  ? 'bg-blue-600 text-white shadow'
-                  : 'text-slate-500 hover:text-slate-800',
-              )}
-            >
-              {s === null ? (
-                <span className="flex items-center gap-1"><Filter className="h-3 w-3" /> Tất cả TT</span>
-              ) : s === 'completed' ? 'Hoàn thành' : 'Đang thăm'}
-            </button>
-          ))}
-        </div>
 
         {/* Type filter */}
         <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
@@ -258,35 +227,16 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
         </Select>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-green-50 p-3 rounded-lg border border-green-200 text-center">
-          <p className="text-xs text-green-700 font-medium">Hoàn thành</p>
-          <p className="text-2xl font-bold text-green-900">{completed}</p>
-        </div>
-        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-center">
-          <p className="text-xs text-blue-700 font-medium">Đang thăm</p>
-          <p className="text-2xl font-bold text-blue-900">{active}</p>
-        </div>
-        <div className="bg-purple-50 p-3 rounded-lg border border-purple-200 text-center">
-          <p className="text-xs text-purple-700 font-medium">TB thời gian</p>
-          <p className="text-2xl font-bold text-purple-900">{avgDuration} phút</p>
-        </div>
-      </div>
-
-      {/* Table */}
       <div className="overflow-x-auto rounded-lg border border-border/50">
         <Table>
           <TableHeader className="bg-gray-50">
             <TableRow>
               <TableHead className="font-semibold">MSSV</TableHead>
               <TableHead className="font-semibold">Họ tên</TableHead>
-              <TableHead className="font-semibold">Khoa / Lớp</TableHead>
-              <TableHead className="font-semibold">Ngành</TableHead>
+              <TableHead className="font-semibold">Khoa</TableHead>
+              <TableHead className="font-semibold">Lớp</TableHead>
               <TableHead className="font-semibold">Đơn vị</TableHead>
               <TableHead className="font-semibold">Thời gian</TableHead>
-              <TableHead className="text-center font-semibold">Phút</TableHead>
-              <TableHead className="text-center font-semibold">TT</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -298,11 +248,10 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
                   </TableCell>
                   <TableCell className="font-medium">{c.student.fullName}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    <div>{c.student.department ?? '—'}</div>
-                    <div className="text-xs font-mono">{c.student.className ?? ''}</div>
+                    {c.student.department ?? '—'}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {c.student.major ?? '—'}
+                  <TableCell className="text-sm text-muted-foreground font-mono">
+                    {c.student.className ?? '—'}
                   </TableCell>
                   <TableCell className="text-sm">
                     <div className="flex items-center gap-2">
@@ -316,25 +265,11 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
                   <TableCell className="text-sm font-mono whitespace-nowrap">
                     {formatVNDateTime(c.checkInTime)}
                   </TableCell>
-                  <TableCell className="text-sm text-center">
-                    {c.durationMinutes ?? '—'}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {c.status === 'completed' ? (
-                      <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
-                        <CheckCircle className="h-3 w-3" /> Hoàn thành
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
-                        <Clock className="h-3 w-3" /> Đang thăm
-                      </span>
-                    )}
-                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Không có kết quả phù hợp
                 </TableCell>
               </TableRow>

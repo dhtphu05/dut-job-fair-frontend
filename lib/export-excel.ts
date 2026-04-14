@@ -133,75 +133,95 @@ function dayLabel(iso: string): string {
 
 // ── Main Export ───────────────────────────────────────────────────────────────
 
-export function exportSchoolAdminExcel(payload: ExportPayload, filename?: string): void {
+export function exportOverviewExcel(stats: ExportStats, filename?: string): void {
   const wb = XLSX.utils.book_new()
-
-  // ── Sheet 1: Tổng quan ─────────────────────────────────────────────────────
   const overviewRows: unknown[][] = [
     ['Chỉ số', 'Giá trị'],
     ['Sự kiện',        'DUT Job Fair 2026'],
     ['Ngày xuất báo cáo', fmtDate(new Date().toISOString())],
     ['', ''],
-    ['Sinh viên tham quan (unique)', payload.stats.totalVisitors],
-    ['Tổng lượt quét (check-in)',   payload.stats.totalScans],
-    ['Số gian hàng',                 payload.stats.totalBooths],
+    ['Sinh viên tham quan (unique)', stats.totalVisitors],
+    ['Tổng lượt quét (check-in)',   stats.totalScans],
+    ['Số gian hàng',                 stats.totalBooths],
     ['Trung bình lượt/gian hàng',
-      payload.stats.totalBooths
-        ? +(payload.stats.totalScans / payload.stats.totalBooths).toFixed(1)
+      stats.totalBooths
+        ? +(stats.totalScans / stats.totalBooths).toFixed(1)
         : 0],
   ]
   const wsOverview = XLSX.utils.aoa_to_sheet(overviewRows)
   wsOverview['!cols'] = [{ wch: 36 }, { wch: 28 }]
   XLSX.utils.book_append_sheet(wb, wsOverview, 'Tổng quan')
 
-  // ── Sheet 2: Phân bố theo giờ ──────────────────────────────────────────────
+  const date = new Date().toISOString().split('T')[0]
+  const name = filename ?? `DUT-JobFair-Overview-${date}.xlsx`
+  XLSX.writeFile(wb, name)
+}
+
+export function exportAnalyticsExcel(
+  hourlyDist: HourlyRow[],
+  majorDist: MajorRow[],
+  deptDist: DeptRow[],
+  yearDist: YearRow[],
+  dailyDist: DailyRow[],
+  filename?: string
+): void {
+  const wb = XLSX.utils.book_new()
+
   const wsHourly = styledSheet(
     ['Giờ', 'Lượt quét'],
-    payload.hourlyDist.map((h) => ({ hour: (h.hour + 7) % 24, count: h.count }))
+    hourlyDist.map((h) => ({ hour: (h.hour + 7) % 24, count: h.count }))
       .sort((a, b) => a.hour - b.hour)
       .map((h) => [`${h.hour.toString().padStart(2, '0')}:00`, h.count]),
   )
   XLSX.utils.book_append_sheet(wb, wsHourly, 'Theo giờ')
 
-  // ── Sheet 3: Phân bố theo ngành ────────────────────────────────────────────
   const wsMajor = styledSheet(
     ['Ngành', 'Số sinh viên'],
-    payload.majorDist.map((m) => [m.major, m.count]),
+    majorDist.map((m) => [m.major, m.count]),
   )
   XLSX.utils.book_append_sheet(wb, wsMajor, 'Theo ngành')
 
-  // ── Sheet 4: Phân bố theo khoa ─────────────────────────────────────────────
   const wsDept = styledSheet(
     ['Khoa', 'Số sinh viên'],
-    payload.deptDist.map((d) => [d.department, d.count]),
+    deptDist.map((d) => [d.department, d.count]),
   )
   XLSX.utils.book_append_sheet(wb, wsDept, 'Theo khoa')
 
-  // ── Sheet 5: Phân bố theo năm học ──────────────────────────────────────────
   const wsYear = styledSheet(
     ['Năm học', 'Số sinh viên'],
-    payload.yearDist.map((y) => [`Năm ${y.year}`, y.count]),
+    yearDist.map((y) => [`Năm ${y.year}`, y.count]),
   )
   XLSX.utils.book_append_sheet(wb, wsYear, 'Theo năm học')
 
-  // ── Sheet 6: So sánh ngày ──────────────────────────────────────────────────
   const wsDaily = styledSheet(
     ['Ngày', 'Tổng lượt quét', 'Sinh viên unique'],
-    payload.dailyDist.map((d) => [dayLabel(d.date), d.count, d.uniqueStudents]),
+    dailyDist.map((d) => [dayLabel(d.date), d.count, d.uniqueStudents]),
   )
   XLSX.utils.book_append_sheet(wb, wsDaily, 'So sánh ngày')
 
-  // ── Sheet 7: Gian hàng ─────────────────────────────────────────────────────
+  const date = new Date().toISOString().split('T')[0]
+  const name = filename ?? `DUT-JobFair-Analytics-${date}.xlsx`
+  XLSX.writeFile(wb, name)
+}
+
+export function exportBoothStatsExcel(boothStats: BoothStatRow[], filename?: string): void {
+  const wb = XLSX.utils.book_new()
   const wsBooth = styledSheet(
     ['Tên gian hàng', 'Công ty', 'Vị trí', 'Tổng lượt quét', 'Sinh viên unique'],
-    payload.boothStats.map((b) => [b.name, b.business, b.location ?? '', b.totalScans, b.uniqueStudents]),
+    boothStats.map((b) => [b.name, b.business, b.location ?? '', b.totalScans, b.uniqueStudents]),
   )
-  XLSX.utils.book_append_sheet(wb, wsBooth, 'Gian hàng')
+  XLSX.utils.book_append_sheet(wb, wsBooth, 'Thống kê gian hàng')
 
-  // ── Sheet 8: Danh sách check-in ────────────────────────────────────────────
+  const date = new Date().toISOString().split('T')[0]
+  const name = filename ?? `DUT-JobFair-BoothStats-${date}.xlsx`
+  XLSX.writeFile(wb, name)
+}
+
+export function exportCheckinsExcel(checkins: CheckinRow[], filename?: string): void {
+  const wb = XLSX.utils.book_new()
   const wsCheckins = styledSheet(
     ['#', 'MSSV', 'Họ tên', 'Khoa', 'Lớp', 'Ngành', 'Năm', 'Gian hàng', 'Công ty', 'Thời gian check-in', 'Thời gian (phút)', 'Trạng thái'],
-    payload.checkins.map((c, i) => [
+    checkins.map((c, i) => [
       i + 1,
       c.student.studentCode,
       c.student.fullName,
@@ -218,8 +238,7 @@ export function exportSchoolAdminExcel(payload: ExportPayload, filename?: string
   )
   XLSX.utils.book_append_sheet(wb, wsCheckins, 'Danh sách check-in')
 
-  // ── Write & Download ───────────────────────────────────────────────────────
   const date = new Date().toISOString().split('T')[0]
-  const name = filename ?? `DUT-JobFair-2026-BaoCao-${date}.xlsx`
+  const name = filename ?? `DUT-JobFair-Checkins-${date}.xlsx`
   XLSX.writeFile(wb, name)
 }

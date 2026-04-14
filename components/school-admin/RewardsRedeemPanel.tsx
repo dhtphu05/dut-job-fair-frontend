@@ -9,6 +9,13 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { customAxiosInstance } from '@/lib/axios-instance'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { CheckCircle2, AlertTriangle, AlertCircle, Gift, Loader2, ScanLine } from 'lucide-react'
 
 type RewardRedeemResult = 'claimed_now' | 'already_claimed' | 'expired' | 'invalid_state'
@@ -95,6 +102,7 @@ export function RewardsRedeemPanel() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [result, setResult] = useState<RewardRedeemResponse | null>(null)
   const [networkError, setNetworkError] = useState<string | null>(null)
+  const [showModal, setShowModal] = useState(false)
   const tone = getResultTone(result?.result)
 
   const submitRedeem = async (rawCode: string) => {
@@ -111,6 +119,7 @@ export function RewardsRedeemPanel() {
       const data = await redeemReward(normalizedCode)
       setResult(data)
       setRequestCode(normalizedCode)
+      setShowModal(true)
     } catch (error: any) {
       const status = error?.response?.status
       const message =
@@ -201,61 +210,64 @@ export function RewardsRedeemPanel() {
               </AlertDescription>
             </Alert>
 
-            {networkError && (
-              <Alert variant="destructive">
-                <AlertDescription>{networkError}</AlertDescription>
-              </Alert>
-            )}
           </CardContent>
         </Card>
       </div>
 
-      <Card className={tone.card}>
-        <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              {tone.icon}
-              <CardTitle>Kết quả đổi quà</CardTitle>
+      {networkError && (
+        <Alert variant="destructive" className="bg-red-50 text-red-900 border-red-200">
+          <AlertCircle className="h-4 w-4 stroke-red-600" />
+          <AlertDescription className="ml-2 font-medium">{networkError}</AlertDescription>
+        </Alert>
+      )}
+
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className={`sm:max-w-md ${tone.card} border-2`}>
+          <DialogHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                {tone.icon}
+                <DialogTitle>Kết quả đổi quà</DialogTitle>
+              </div>
+              <Badge className={tone.badge}>{tone.label}</Badge>
             </div>
-            <Badge className={tone.badge}>{tone.label}</Badge>
+            <DialogDescription className="pt-2 text-slate-700">
+              {result?.message || 'Chưa có giao dịch đổi quà nào trong phiên này.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 pt-4">
+            {result?.claim && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="rounded-lg border border-black/5 bg-white/70 p-4">
+                  <p className="text-muted-foreground">Mã yêu cầu</p>
+                  <p className="font-semibold">{result.claim.requestCode}</p>
+                </div>
+                <div className="rounded-lg border border-black/5 bg-white/70 p-4">
+                  <p className="text-muted-foreground">Trạng thái</p>
+                  <p className="font-semibold">{result.claim.status}</p>
+                </div>
+                <div className="rounded-lg border border-black/5 bg-white/70 p-4">
+                  <p className="text-muted-foreground">Sinh viên</p>
+                  <p className="font-semibold">{result.claim.student?.fullName || 'Không có dữ liệu'}</p>
+                  <p className="text-muted-foreground">{result.claim.student?.studentCode || ''}</p>
+                </div>
+                <div className="rounded-lg border border-black/5 bg-white/70 p-4">
+                  <p className="text-muted-foreground">Mốc quà</p>
+                  <p className="font-semibold">{result.claim.milestone?.name || 'Không có dữ liệu'}</p>
+                </div>
+                <div className="rounded-lg border border-black/5 bg-white/70 p-4 md:col-span-2">
+                  <p className="text-muted-foreground">Thời gian đổi</p>
+                  <p className="font-semibold">{formatDateTime(result.claim.claimedAt)}</p>
+                </div>
+              </div>
+            )}
+            <Button className="w-full mt-4" onClick={() => setShowModal(false)} variant="outline">
+              Đóng và tiếp tục
+            </Button>
           </div>
-          <CardDescription>
-            {result?.message || 'Chưa có giao dịch đổi quà nào trong phiên này.'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {result?.claim ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div className="rounded-lg border border-black/5 bg-white/70 p-4">
-                <p className="text-muted-foreground">Mã yêu cầu</p>
-                <p className="font-semibold">{result.claim.requestCode}</p>
-              </div>
-              <div className="rounded-lg border border-black/5 bg-white/70 p-4">
-                <p className="text-muted-foreground">Trạng thái</p>
-                <p className="font-semibold">{result.claim.status}</p>
-              </div>
-              <div className="rounded-lg border border-black/5 bg-white/70 p-4">
-                <p className="text-muted-foreground">Sinh viên</p>
-                <p className="font-semibold">{result.claim.student?.fullName || 'Không có dữ liệu'}</p>
-                <p className="text-muted-foreground">{result.claim.student?.studentCode || ''}</p>
-              </div>
-              <div className="rounded-lg border border-black/5 bg-white/70 p-4">
-                <p className="text-muted-foreground">Mốc quà</p>
-                <p className="font-semibold">{result.claim.milestone?.name || 'Không có dữ liệu'}</p>
-              </div>
-              <div className="rounded-lg border border-black/5 bg-white/70 p-4 md:col-span-2">
-                <p className="text-muted-foreground">Thời gian đổi</p>
-                <p className="font-semibold">{formatDateTime(result.claim.claimedAt)}</p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Quét QR hoặc nhập `requestCode` để đổi quà. Kết quả thành công, đã đổi rồi, hết hạn và không hợp lệ sẽ
-              được hiển thị ở đây.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
