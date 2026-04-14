@@ -188,15 +188,22 @@ export default function BusinessAdminDashboard() {
   ]
 
   const hourlyData = boothStats?.hourlyDistribution?.map((h: any) => ({
-    time: `${h.hour}:00`,
+    time: `${(h.hour + 7) % 24}:00`,
+    hour: (h.hour + 7) % 24,
     count: h.count,
-  })) ?? mockPeakHours.map((h) => ({ time: `${h.hour}:00`, count: h.count }))
+  })).sort((a: any, b: any) => a.hour - b.hour) ?? mockPeakHours.map((h) => ({ 
+    time: `${h.hour}:00`, 
+    hour: h.hour,
+    count: h.count 
+  }))
 
   const workshopHourlyData = workshopAttendance
     ? Array.from({ length: 24 }, (_, hour) => {
         const count = workshopAttendance.items.filter((item) => {
-          const date = new Date(item.checkInTime.replace(' ', 'T'))
-          return !Number.isNaN(date.getTime()) && date.getHours() === hour
+          const raw = item.checkInTime.replace(' ', 'T')
+          const utc = raw.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(raw) ? raw : raw + 'Z'
+          const vnDate = new Date(new Date(utc).getTime() + 7 * 60 * 60 * 1000)
+          return !Number.isNaN(vnDate.getTime()) && vnDate.getUTCHours() === hour
         }).length
         return { time: `${hour.toString().padStart(2, '0')}:00`, count }
       }).filter((item) => item.count > 0)
@@ -221,6 +228,27 @@ export default function BusinessAdminDashboard() {
     (best, current) => (current.count > best.count ? current : best),
     { time: '—', count: 0 },
   )
+
+  const boothPeakHour = hourlyData.reduce(
+    (best: any, current: any) => (current.count > best.count ? current : best),
+    { time: '—', count: 0 },
+  )
+
+  const boothDepartmentData = Object.entries(
+    ((checkinsData as any)?.data?.items ?? []).reduce<Record<string, number>>((acc: Record<string, number>, item: any) => {
+      const key = item.student?.department?.trim() || 'Chưa cập nhật'
+      acc[key] = (acc[key] ?? 0) + 1
+      return acc
+    }, {}),
+  ).map(([name, value]) => ({ name, value }))
+
+  const boothYearData = Object.entries(
+    visitors.reduce<Record<string, number>>((acc, v) => {
+      const key = v.year ? `Năm ${v.year}` : 'Chưa cập nhật'
+      acc[key] = (acc[key] ?? 0) + 1
+      return acc
+    }, {}),
+  ).map(([name, value]) => ({ name, value }))
 
   const renderBoothContent = () => {
     switch (activeTab) {
@@ -264,7 +292,7 @@ export default function BusinessAdminDashboard() {
               </Button>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <SummaryMetric
                 label="Lượt check-in"
                 value={boothStats?.stats?.totalVisitors ?? visitorsTotal}
@@ -296,8 +324,39 @@ export default function BusinessAdminDashboard() {
       case 'analytics':
         return (
           <div className="space-y-6">
+            <div className="grid grid-cols-3 gap-4">
+              <SummaryMetric
+                label="Lượt check-in"
+                value={boothStats?.stats?.totalVisitors ?? visitorsTotal}
+                icon={Eye}
+                isLoading={isBoothViewLoading}
+                description="Tổng lượt quét tại quầy"
+              />
+              <SummaryMetric
+                label="Khách duy nhất"
+                value={boothStats?.stats?.uniqueVisitors ?? '—'}
+                icon={Users}
+                isLoading={isBoothViewLoading}
+                description="Số sinh viên khác nhau"
+              />
+              <SummaryMetric
+                label="Giờ cao điểm"
+                value={boothPeakHour.time}
+                icon={Calendar}
+                isLoading={isBoothViewLoading}
+                description={boothPeakHour.count > 0 ? `${boothPeakHour.count} lượt check-in` : 'Chưa có dữ liệu'}
+              />
+            </div>
             <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-              Trang phân tích đang phát triển
+              <BoothTrendsChart data={hourlyData} title="Biểu đồ check-in theo giờ" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+                <DistributionChart data={boothDepartmentData} title="Phân bố theo khoa" />
+              </div>
+              <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+                <DistributionChart data={boothYearData} title="Phân bố theo năm học" />
+              </div>
             </div>
           </div>
         )
@@ -356,7 +415,7 @@ export default function BusinessAdminDashboard() {
                   workshop={workshopAttendance.workshop}
                   total={workshopAttendance.total}
                 />
-                <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <SummaryMetric
                     label="Sinh viên đã điểm danh"
                     value={workshopAttendance.total}
@@ -391,7 +450,7 @@ export default function BusinessAdminDashboard() {
       case 'analytics':
         return workshopAttendance ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-3 gap-4">
               <SummaryMetric
                 label="Tổng lượt điểm danh"
                 value={workshopAttendance.total}
@@ -404,7 +463,14 @@ export default function BusinessAdminDashboard() {
                 value={workshopPeakHour.time}
                 icon={Calendar}
                 isLoading={isWorkshopLoading}
-                description={`${workshopPeakHour.count} lượt check-in`}
+                description={workshopPeakHour.count > 0 ? `${workshopPeakHour.count} lượt check-in` : 'Chưa có dữ liệu'}
+              />
+              <SummaryMetric
+                label="Khoa tham gia"
+                value={workshopDepartmentData.length || '—'}
+                icon={Eye}
+                isLoading={isWorkshopLoading}
+                description="Số khoa xuất hiện trong danh sách điểm danh"
               />
             </div>
             <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
