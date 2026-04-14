@@ -195,8 +195,10 @@ export default function BusinessAdminDashboard() {
   const workshopHourlyData = workshopAttendance
     ? Array.from({ length: 24 }, (_, hour) => {
         const count = workshopAttendance.items.filter((item) => {
-          const date = new Date(item.checkInTime.replace(' ', 'T'))
-          return !Number.isNaN(date.getTime()) && date.getHours() === hour
+          const raw = item.checkInTime.replace(' ', 'T')
+          const utc = raw.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(raw) ? raw : raw + 'Z'
+          const vnDate = new Date(new Date(utc).getTime() + 7 * 60 * 60 * 1000)
+          return !Number.isNaN(vnDate.getTime()) && vnDate.getUTCHours() === hour
         }).length
         return { time: `${hour.toString().padStart(2, '0')}:00`, count }
       }).filter((item) => item.count > 0)
@@ -264,7 +266,7 @@ export default function BusinessAdminDashboard() {
               </Button>
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <SummaryMetric
                 label="Lượt check-in"
                 value={boothStats?.stats?.totalVisitors ?? visitorsTotal}
@@ -356,7 +358,7 @@ export default function BusinessAdminDashboard() {
                   workshop={workshopAttendance.workshop}
                   total={workshopAttendance.total}
                 />
-                <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <SummaryMetric
                     label="Sinh viên đã điểm danh"
                     value={workshopAttendance.total}

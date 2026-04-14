@@ -24,7 +24,7 @@ function validateForm(email: string, password: string): FormErrors {
 
   if (!email.trim()) {
     errors.email = 'Email không được để trống.'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+  } else if (!/^[^\s@]+@[^\s@]+$/.test(email.trim())) {
     errors.email = 'Email không đúng định dạng.'
   }
 
