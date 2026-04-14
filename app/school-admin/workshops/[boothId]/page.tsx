@@ -21,11 +21,13 @@ import { WorkshopAccountDialog } from '@/components/school-admin/WorkshopAccount
 import {
   createSchoolAdminWorkshopAccount,
   getSchoolAdminWorkshopDetail,
+  downloadSchoolAdminWorkshopAttendanceExcel,
+  updateSchoolAdminWorkshopAccount
 } from '@/lib/school-admin-workshops'
 import { formatVNDateTime } from '@/lib/utils'
 import type { WorkshopAccountCreateInput } from '@/lib/types'
 import { toast } from 'sonner'
-import { ArrowLeft, KeyRound, QrCode, RefreshCw, Users } from 'lucide-react'
+import { ArrowLeft, KeyRound, QrCode, RefreshCw, Users, Download, Loader2 } from 'lucide-react'
 
 export default function SchoolAdminWorkshopDetailPage() {
   const router = useRouter()
@@ -33,6 +35,7 @@ export default function SchoolAdminWorkshopDetailPage() {
   const boothId = typeof params?.boothId === 'string' ? params.boothId : ''
   const [accountDialogOpen, setAccountDialogOpen] = useState(false)
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['school-admin', 'workshop-detail', boothId],
@@ -48,13 +51,18 @@ export default function SchoolAdminWorkshopDetailPage() {
     [data?.departmentDistribution],
   )
 
-  const handleCreateAccount = async (payload: WorkshopAccountCreateInput) => {
+  const handleCreateAccount = async (payload: any, isUpdate: boolean = false) => {
     if (!boothId) return
 
     setIsCreatingAccount(true)
     try {
-      await createSchoolAdminWorkshopAccount(boothId, payload)
-      toast.success('Đã tạo tài khoản cho workshop')
+      if (isUpdate) {
+        await updateSchoolAdminWorkshopAccount(boothId, payload)
+        toast.success('Đã cập nhật thông tin tài khoản')
+      } else {
+        await createSchoolAdminWorkshopAccount(boothId, payload)
+        toast.success('Đã tạo tài khoản cho workshop')
+      }
       setAccountDialogOpen(false)
       await refetch()
     } catch (error: any) {
@@ -68,6 +76,19 @@ export default function SchoolAdminWorkshopDetailPage() {
       }
     } finally {
       setIsCreatingAccount(false)
+    }
+  }
+
+  const handleExportExcel = async () => {
+    if (!boothId) return
+    setIsExporting(true)
+    try {
+      await downloadSchoolAdminWorkshopAttendanceExcel(boothId)
+      toast.success('Đã tải xuống file Excel')
+    } catch (error) {
+      toast.error('Có lỗi xảy ra khi xuất file')
+    } finally {
+      setIsExporting(false)
     }
   }
 
@@ -87,6 +108,16 @@ export default function SchoolAdminWorkshopDetailPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="hidden sm:flex items-center gap-2 font-semibold"
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              <span>Xuất Excel</span>
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => refetch()} disabled={isFetching}>
               <RefreshCw className={`h-4 w-4 text-slate-400 ${isFetching ? 'animate-spin' : ''}`} />
             </Button>

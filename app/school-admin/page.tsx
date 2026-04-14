@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import axiosInstance from '@/lib/axios-instance'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { BoothsTable } from '@/components/school-admin/BoothsTable'
 import { PrizesSection } from '@/components/school-admin/PrizesSection'
@@ -27,6 +28,8 @@ import {
   Gift,
   Settings2,
   ScanQrCode,
+  Loader2,
+  Maximize2,
 } from 'lucide-react'
 import type {
   Booth,
@@ -48,7 +51,7 @@ import { getSchoolAdminBusinessAccounts, createSchoolAdminBusinessAccount, delet
 import { WorkshopManagementTable } from '@/components/school-admin/WorkshopManagementTable'
 import { UserProfileHeader } from '@/components/UserProfileHeader'
 import { customAxiosInstance } from '@/lib/axios-instance'
-import { exportSchoolAdminExcel } from '@/lib/export-excel'
+import { exportOverviewExcel, exportAnalyticsExcel, exportBoothStatsExcel, exportCheckinsExcel } from '@/lib/export-excel'
 import { cn, formatVNDateTime } from '@/lib/utils'
 import { createSchoolAdminWorkshopAccount, getSchoolAdminWorkshops, updateSchoolAdminWorkshopAccount } from '@/lib/school-admin-workshops'
 import { toast } from 'sonner'
@@ -409,51 +412,82 @@ export default function SchoolAdminDashboard() {
     }
   }
 
-  const handleExport = async () => {
+  const handleExportOverview = async () => {
     if (isExporting) return
     setIsExporting(true)
     try {
-      const [checkinsRes, boothStatsRes] = await Promise.all([
-        customAxiosInstance<any>('/api/school-admin/checkins?page=1&pageSize=9999', { method: 'GET' }),
-        customAxiosInstance<any>('/api/school-admin/booth-stats', { method: 'GET' }),
-      ])
-      const allCheckins = (checkinsRes as any).data?.items ?? []
-      const allBoothStats = (boothStatsRes as any).data ?? []
-
-      exportSchoolAdminExcel({
-        stats: {
-          totalVisitors: overallStats.uniqueVisitors ?? 0,
-          totalBooths: overallStats.totalBooths ?? 0,
-          totalScans: overallStats.totalCheckins ?? 0,
-        },
-        hourlyDist,
-        majorDist,
-        deptDist,
-        yearDist,
-        dailyDist,
-        boothStats: allBoothStats,
-        checkins: allCheckins,
+      exportOverviewExcel({
+        totalVisitors: overallStats.uniqueVisitors ?? 0,
+        totalBooths: overallStats.totalBooths ?? 0,
+        totalScans: overallStats.totalCheckins ?? 0,
       })
+      toast.success('Báo cáo tổng quan đã được tải')
     } catch (err) {
       console.error('Export failed:', err)
-      alert('Xuất file thất bại. Vui lòng thử lại.')
+      toast.error('Xuất file thất bại. Vui lòng thử lại.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleExportAnalytics = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    try {
+      exportAnalyticsExcel(hourlyDist, majorDist, deptDist, yearDist, dailyDist)
+      toast.success('Dữ liệu phân tích đã được tải')
+    } catch (err) {
+      console.error('Export failed:', err)
+      toast.error('Xuất file thất bại. Vui lòng thử lại.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleExportBoothStats = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    try {
+      const boothStatsRes = await customAxiosInstance<any>('/api/school-admin/booth-stats', { method: 'GET' })
+      const allBoothStats = (boothStatsRes as any).data ?? []
+      exportBoothStatsExcel(allBoothStats)
+      toast.success('Thống kê gian hàng đã được tải')
+    } catch (err) {
+      console.error('Export failed:', err)
+      toast.error('Xuất file thất bại. Vui lòng thử lại.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleExportCheckins = async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    try {
+      const checkinsRes = await customAxiosInstance<any>('/api/school-admin/checkins?page=1&pageSize=99999', { method: 'GET' })
+      const allCheckins = (checkinsRes as any).data?.items ?? []
+      exportCheckinsExcel(allCheckins)
+      toast.success('Lịch sử điểm danh đã được tải')
+    } catch (err) {
+      console.error('Export failed:', err)
+      toast.error('Xuất file thất bại. Vui lòng thử lại.')
     } finally {
       setIsExporting(false)
     }
   }
 
   const navItems = [
-    { id: 'event-overview', label: 'Thống kê theo nhóm', icon: <BarChart3 className="h-5 w-5" /> },
-    { id: 'workshop-management', label: 'Quản lý workshop', icon: <Building2 className="h-5 w-5" /> },
-    { id: 'business-accounts', label: 'Tài khoản doanh nghiệp', icon: <Building2 className="h-5 w-5" /> },
+    { id: 'event-overview', label: 'Tổng quan', icon: <BarChart3 className="h-5 w-5" /> },
     { id: 'booth-stats', label: 'Thống kê đơn vị', icon: <TrendingUp className="h-5 w-5" /> },
     { id: 'analytics', label: 'Phân tích', icon: <LineChart className="h-5 w-5" /> },
     { id: 'checkins', label: 'Check-in SV', icon: <Users className="h-5 w-5" /> },
     { id: 'lookup', label: 'Tra cứu SV', icon: <SearchIcon className="h-5 w-5" /> },
+    { id: 'booths', label: 'Danh sách đơn vị', icon: <Building2 className="h-5 w-5" /> },
+    { id: 'workshop-management', label: 'Quản lý workshop', icon: <Building2 className="h-5 w-5" /> },
+    { id: 'business-accounts', label: 'Tài khoản doanh nghiệp', icon: <Building2 className="h-5 w-5" /> },
     { id: 'reward-settings', label: 'Mốc quà', icon: <Settings2 className="h-5 w-5" /> },
     { id: 'reward-students', label: 'SV theo mốc quà', icon: <Gift className="h-5 w-5" /> },
     { id: 'rewards', label: 'Đổi quà', icon: <Gift className="h-5 w-5" /> },
-    { id: 'booths', label: 'Danh sách đơn vị', icon: <Building2 className="h-5 w-5" /> },
     { id: 'prizes', label: 'Giải thưởng', icon: <Award className="h-5 w-5" /> },
   ]
 
@@ -467,6 +501,38 @@ export default function SchoolAdminDashboard() {
     setActiveTab(tab)
   }
 
+  const handleExportBoothVisitors = async () => {
+    setIsExporting(true)
+    try {
+      const rawResponse = await axiosInstance.get('/api/school-admin/booth-visitors/export/excel', {
+        responseType: 'blob'
+      })
+      const contentDisposition = rawResponse.headers['content-disposition']
+      let filename = 'booth-visitors.xls'
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
+        if (filenameMatch && filenameMatch.length === 2) {
+          filename = filenameMatch[1]
+        }
+      }
+
+      const url = window.URL.createObjectURL(new Blob([rawResponse.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      link.parentNode?.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      toast.success('Đã tải xuống file Excel danh sách sinh viên thăm quan')
+    } catch (error) {
+      toast.error('Có lỗi xảy ra khi tải file Excel')
+      console.error('Export error:', error)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const renderContent = () => {
     switch (activeTab) {
       case 'event-overview':
@@ -477,18 +543,27 @@ export default function SchoolAdminDashboard() {
 
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
-                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Thống kê sự kiện theo nhóm</h3>
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Tổng quan</h3>
                 <p className="text-sm text-slate-400 italic">Tách riêng dữ liệu booth doanh nghiệp và workshop</p>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
                 <Button
-                  size="sm"
-                  onClick={handleExport}
+                  onClick={handleExportOverview}
                   disabled={isExporting}
-                  className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
                 >
-                  <Download className="h-4 w-4" />
-                  <span>Xuất Excel</span>
+                  {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  <span>Tải Báo Cáo Tổng Quan</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto font-medium whitespace-nowrap"
+                  onClick={() => {
+                    window.open('/scanner', '_blank')
+                  }}
+                >
+                  <Maximize2 className="mr-2 h-4 w-4" />
+                  Mở Scanner toàn màn hình
                 </Button>
               </div>
             </div>
@@ -560,7 +635,17 @@ export default function SchoolAdminDashboard() {
       case 'booth-stats':
         return (
           <div className="space-y-4">
-            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+              <Button
+                onClick={handleExportBoothStats}
+                disabled={isExporting}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
+              >
+                {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                <span>Xuất Thống Kê Đơn Vị</span>
+              </Button>
+            </div>
             <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
               <BoothScanStats filterType={activeUnitType} />
             </div>
@@ -587,11 +672,22 @@ export default function SchoolAdminDashboard() {
       case 'analytics':
         return (
           <div className="space-y-6">
-            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+              <Button
+                onClick={handleExportAnalytics}
+                disabled={isExporting}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 shadow-lg shadow-blue-500/20 rounded-xl px-4 font-bold"
+              >
+                {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                <span>Tải Báo Kế Toán / Phân Tích</span>
+              </Button>
+            </div>
             <AnalyticsContent
               peakHoursData={peakHoursData}
               majorDist={majorDist}
               deptDist={deptDist}
+              yearDist={yearDist}
               selectedMeta={selectedMeta}
               selectedDistribution={selectedDistribution}
               boothVsWorkshop={boothVsWorkshop}
@@ -602,7 +698,28 @@ export default function SchoolAdminDashboard() {
       case 'checkins':
         return (
           <div className="space-y-4">
-            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto font-medium"
+                  onClick={handleExportBoothVisitors}
+                  disabled={isExporting}
+                >
+                  {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                  DS Sinh viên thăm quan (Đã Lọc)
+                </Button>
+                <Button
+                  className="w-full sm:w-auto font-medium bg-slate-900 text-white hover:bg-slate-800"
+                  onClick={handleExportCheckins}
+                  disabled={isExporting}
+                >
+                  {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                  Toàn bộ Check-in (Chi tiết)
+                </Button>
+              </div>
+            </div>
             <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
               <StudentCheckinList defaultTypeFilter={activeUnitType} />
             </div>
@@ -701,6 +818,7 @@ function AnalyticsContent({
   peakHoursData,
   majorDist,
   deptDist,
+  yearDist,
   selectedMeta,
   selectedDistribution,
   boothVsWorkshop,
@@ -708,6 +826,7 @@ function AnalyticsContent({
   peakHoursData: Array<{ hour: number; count: number }>
   majorDist: Array<{ major: string; count: number }>
   deptDist: Array<{ department: string; count: number }>
+  yearDist: Array<{ year: number; count: number }>
   selectedMeta: ReturnType<typeof getUnitMeta>
   selectedDistribution: { type: UnitType; count: number; uniqueStudents: number }
   boothVsWorkshop: Array<{ name: string; Booth: number; Workshop: number }>
@@ -752,12 +871,12 @@ function AnalyticsContent({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-          <DistributionChart data={majorDist.slice(0, 10).map((m) => ({ name: m.major, value: m.count }))} title="Top 10 Ngành học" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 overflow-hidden">
+          <HeatmapGrid data={yearDist.map((y) => ({ name: `Năm ${y.year}`, value: y.count }))} title="Số lượng sinh viên theo khóa" />
         </div>
-        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-          <HeatmapGrid data={deptDist.map((d) => ({ name: d.department, value: d.count }))} title="Sinh viên theo khoa" />
+        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 overflow-hidden">
+          <HeatmapGrid data={deptDist.map((d) => ({ name: typeof d.department === 'string' ? d.department.replace(/^Khoa\s+/i, '') : d.department, value: d.count }))} title="Số lượng sinh viên theo khoa" />
         </div>
       </div>
     </div>
