@@ -224,6 +224,27 @@ export default function BusinessAdminDashboard() {
     { time: '—', count: 0 },
   )
 
+  const boothPeakHour = hourlyData.reduce(
+    (best: any, current: any) => (current.count > best.count ? current : best),
+    { time: '—', count: 0 },
+  )
+
+  const boothDepartmentData = Object.entries(
+    ((checkinsData as any)?.data?.items ?? []).reduce<Record<string, number>>((acc: Record<string, number>, item: any) => {
+      const key = item.student?.department?.trim() || 'Chưa cập nhật'
+      acc[key] = (acc[key] ?? 0) + 1
+      return acc
+    }, {}),
+  ).map(([name, value]) => ({ name, value }))
+
+  const boothYearData = Object.entries(
+    visitors.reduce<Record<string, number>>((acc, v) => {
+      const key = v.year ? `Năm ${v.year}` : 'Chưa cập nhật'
+      acc[key] = (acc[key] ?? 0) + 1
+      return acc
+    }, {}),
+  ).map(([name, value]) => ({ name, value }))
+
   const renderBoothContent = () => {
     switch (activeTab) {
       case 'overview':
@@ -298,8 +319,39 @@ export default function BusinessAdminDashboard() {
       case 'analytics':
         return (
           <div className="space-y-6">
+            <div className="grid grid-cols-3 gap-4">
+              <SummaryMetric
+                label="Lượt check-in"
+                value={boothStats?.stats?.totalVisitors ?? visitorsTotal}
+                icon={Eye}
+                isLoading={isBoothViewLoading}
+                description="Tổng lượt quét tại quầy"
+              />
+              <SummaryMetric
+                label="Khách duy nhất"
+                value={boothStats?.stats?.uniqueVisitors ?? '—'}
+                icon={Users}
+                isLoading={isBoothViewLoading}
+                description="Số sinh viên khác nhau"
+              />
+              <SummaryMetric
+                label="Giờ cao điểm"
+                value={boothPeakHour.time}
+                icon={Calendar}
+                isLoading={isBoothViewLoading}
+                description={boothPeakHour.count > 0 ? `${boothPeakHour.count} lượt check-in` : 'Chưa có dữ liệu'}
+              />
+            </div>
             <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-              Trang phân tích đang phát triển
+              <BoothTrendsChart data={hourlyData} title="Biểu đồ check-in theo giờ" />
+            </div>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+                <DistributionChart data={boothDepartmentData} title="Phân bố theo khoa" />
+              </div>
+              <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+                <DistributionChart data={boothYearData} title="Phân bố theo năm học" />
+              </div>
             </div>
           </div>
         )
