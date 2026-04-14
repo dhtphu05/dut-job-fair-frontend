@@ -230,6 +230,12 @@ export interface WorkshopAccountCreateInput {
   name?: string
 }
 
+export interface CreateWorkshopInput {
+  name: string
+  email: string
+  password: string
+}
+
 export interface WorkshopAccountUpdateInput {
   email?: string
   password?: string

@@ -1,5 +1,6 @@
 import axiosInstance from '@/lib/axios-instance'
 import type {
+  CreateWorkshopInput,
   WorkshopAccountCreateInput,
   WorkshopDetailResponse,
   WorkshopManagementItem,
@@ -9,6 +10,11 @@ import type {
 export async function getSchoolAdminWorkshops(): Promise<WorkshopManagementItem[]> {
   const response = await axiosInstance.get('/api/school-admin/workshops')
   return response.data?.data ?? []
+}
+
+export async function createSchoolAdminWorkshop(data: CreateWorkshopInput) {
+  const response = await axiosInstance.post('/api/school-admin/workshops', data)
+  return response.data
 }
 
 export async function getSchoolAdminWorkshopDetail(boothId: string): Promise<WorkshopDetailResponse> {
