@@ -555,42 +555,50 @@ export default function SchoolAdminDashboard() {
                   {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                   <span>Tải Báo Cáo Tổng Quan</span>
                 </Button>
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto font-medium whitespace-nowrap"
-                  onClick={() => {
-                    window.open('/scanner', '_blank')
-                  }}
-                >
-                  <Maximize2 className="mr-2 h-4 w-4" />
-                  Mở Scanner toàn màn hình
-                </Button>
+                <div className="hidden lg:flex gap-3 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    className="flex-1 sm:flex-none font-medium whitespace-nowrap h-10 px-3"
+                    onClick={() => {
+                      window.open('/scanner', '_blank')
+                    }}
+                  >
+                    <Maximize2 className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Scanner</span>
+                  </Button>
+                  <Button
+                    className="flex-1 sm:flex-none font-medium whitespace-nowrap bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/20 rounded-xl h-10 px-3"
+                    onClick={() => setActiveTab('rewards')}
+                  >
+                    <Gift className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Quét QR Đổi Quà</span>
+                    <span className="inline sm:hidden">Đổi Quà SV</span>
+                  </Button>
+                </div>
               </div>
             </div>
 
-            <div className="relative overflow-hidden rounded-[32px] bg-slate-950 p-8 text-white shadow-2xl shadow-slate-400/20">
-              <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.35),transparent_55%)]" />
-              <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                <div className="space-y-4">
-                  <Badge className={selectedMeta.badgeClass}>{selectedMeta.title}</Badge>
-                  <div>
-                    <h2 className="text-3xl font-black tracking-tight">{selectedMeta.title}</h2>
-                    <p className="mt-2 max-w-xl text-sm text-slate-300">
-                      Theo dõi KPI riêng, danh sách đơn vị riêng và các lượt quét gần đây cho nhóm {selectedMeta.title.toLowerCase()}.
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 rounded-[24px] border border-white/10 bg-white/5 p-4 backdrop-blur">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Tổng đơn vị</p>
-                    <p className="mt-2 text-3xl font-black">{totalUnits}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Sinh viên unique</p>
-                    <p className="mt-2 text-3xl font-black">{selectedTypeStats.uniqueVisitors}</p>
-                  </div>
+            <div className="lg:hidden relative overflow-hidden bg-purple-600 rounded-[32px] p-8 shadow-2xl shadow-purple-500/30 text-center space-y-6 group">
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/10 rounded-full blur-3xl opacity-50" />
+              
+              <div
+                onClick={() => setActiveTab('rewards')}
+                className="relative mx-auto w-[100px] h-[100px] sm:w-[120px] sm:h-[120px] bg-white/20 backdrop-blur-md rounded-3xl border border-white/30 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+              >
+                <ScanQrCode className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
+              </div>
+
+              <div className="space-y-2 relative z-10">
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">Đổi Quà SV</h2>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full border border-white/20">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-[10px] font-bold text-white uppercase tracking-widest">Sẵn sàng</span>
                 </div>
               </div>
+
+              <p className="text-purple-100 text-[11px] font-bold uppercase tracking-widest relative z-10 opacity-80 mt-4">
+                Nhấn để mở giao diện quét
+              </p>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

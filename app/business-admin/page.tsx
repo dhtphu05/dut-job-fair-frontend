@@ -235,12 +235,12 @@ export default function BusinessAdminDashboard() {
   )
 
   const boothDepartmentData = Object.entries(
-    ((checkinsData as any)?.data?.items ?? []).reduce<Record<string, number>>((acc: Record<string, number>, item: any) => {
+    (((checkinsData as any)?.data?.items ?? []) as any[]).reduce((acc: Record<string, number>, item: any) => {
       const key = item.student?.department?.trim() || 'Chưa cập nhật'
       acc[key] = (acc[key] ?? 0) + 1
       return acc
-    }, {}),
-  ).map(([name, value]) => ({ name, value }))
+    }, {} as Record<string, number>),
+  ).map(([name, value]) => ({ name, value: value as number }))
 
   const boothYearData = Object.entries(
     visitors.reduce<Record<string, number>>((acc, v) => {
@@ -292,7 +292,7 @@ export default function BusinessAdminDashboard() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <SummaryMetric
                 label="Lượt check-in"
                 value={boothStats?.stats?.totalVisitors ?? visitorsTotal}
@@ -324,7 +324,7 @@ export default function BusinessAdminDashboard() {
       case 'analytics':
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <SummaryMetric
                 label="Lượt check-in"
                 value={boothStats?.stats?.totalVisitors ?? visitorsTotal}
@@ -415,7 +415,7 @@ export default function BusinessAdminDashboard() {
                   workshop={workshopAttendance.workshop}
                   total={workshopAttendance.total}
                 />
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <SummaryMetric
                     label="Sinh viên đã điểm danh"
                     value={workshopAttendance.total}
@@ -450,7 +450,7 @@ export default function BusinessAdminDashboard() {
       case 'analytics':
         return workshopAttendance ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <SummaryMetric
                 label="Tổng lượt điểm danh"
                 value={workshopAttendance.total}

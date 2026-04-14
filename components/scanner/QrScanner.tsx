@@ -124,14 +124,10 @@ export function QrScanner({ onScan, isProcessing = false }: QrScannerProps) {
       )}
 
       {/* Video viewfinder */}
-      <div
-        className="relative overflow-hidden rounded-2xl border-2 border-blue-200 bg-black shadow-[0_0_0_4px_rgba(59,130,246,0.08)]"
-        style={{ minHeight: 260 }}
-      >
+      <div className="relative overflow-hidden rounded-2xl border-2 border-blue-200 bg-black shadow-[0_0_0_4px_rgba(59,130,246,0.08)] aspect-square sm:aspect-video md:aspect-[16/9]">
         <video
           ref={videoRef}
-          className="block w-full object-cover"
-          style={{ minHeight: 260, display: 'block' }}
+          className="absolute inset-0 h-full w-full object-cover"
           muted
           playsInline
         />
