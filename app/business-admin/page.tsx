@@ -188,9 +188,14 @@ export default function BusinessAdminDashboard() {
   ]
 
   const hourlyData = boothStats?.hourlyDistribution?.map((h: any) => ({
-    time: `${h.hour}:00`,
+    time: `${(h.hour + 7) % 24}:00`,
+    hour: (h.hour + 7) % 24,
     count: h.count,
-  })) ?? mockPeakHours.map((h) => ({ time: `${h.hour}:00`, count: h.count }))
+  })).sort((a: any, b: any) => a.hour - b.hour) ?? mockPeakHours.map((h) => ({ 
+    time: `${h.hour}:00`, 
+    hour: h.hour,
+    count: h.count 
+  }))
 
   const workshopHourlyData = workshopAttendance
     ? Array.from({ length: 24 }, (_, hour) => {
@@ -445,7 +450,7 @@ export default function BusinessAdminDashboard() {
       case 'analytics':
         return workshopAttendance ? (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-3 gap-4">
               <SummaryMetric
                 label="Tổng lượt điểm danh"
                 value={workshopAttendance.total}
@@ -458,7 +463,14 @@ export default function BusinessAdminDashboard() {
                 value={workshopPeakHour.time}
                 icon={Calendar}
                 isLoading={isWorkshopLoading}
-                description={`${workshopPeakHour.count} lượt check-in`}
+                description={workshopPeakHour.count > 0 ? `${workshopPeakHour.count} lượt check-in` : 'Chưa có dữ liệu'}
+              />
+              <SummaryMetric
+                label="Khoa tham gia"
+                value={workshopDepartmentData.length || '—'}
+                icon={Eye}
+                isLoading={isWorkshopLoading}
+                description="Số khoa xuất hiện trong danh sách điểm danh"
               />
             </div>
             <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
