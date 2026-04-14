@@ -50,7 +50,7 @@ import { UserProfileHeader } from '@/components/UserProfileHeader'
 import { customAxiosInstance } from '@/lib/axios-instance'
 import { exportSchoolAdminExcel } from '@/lib/export-excel'
 import { cn, formatVNDateTime } from '@/lib/utils'
-import { createSchoolAdminWorkshopAccount, getSchoolAdminWorkshops } from '@/lib/school-admin-workshops'
+import { createSchoolAdminWorkshopAccount, getSchoolAdminWorkshops, updateSchoolAdminWorkshopAccount } from '@/lib/school-admin-workshops'
 import { toast } from 'sonner'
 
 type DashboardUnit = {
@@ -344,13 +344,18 @@ export default function SchoolAdminDashboard() {
     setAccountDialogOpen(true)
   }
 
-  const handleCreateWorkshopAccount = async (data: WorkshopAccountCreateInput) => {
+  const handleSubmitWorkshopAccount = async (data: any, isUpdate: boolean) => {
     if (!selectedWorkshop) return
 
     setIsCreatingAccount(true)
     try {
-      await createSchoolAdminWorkshopAccount(selectedWorkshop.id, data)
-      toast.success('Đã tạo tài khoản cho workshop')
+      if (isUpdate) {
+        await updateSchoolAdminWorkshopAccount(selectedWorkshop.id, data)
+        toast.success('Đã cập nhật thông tin đăng nhập hội thảo')
+      } else {
+        await createSchoolAdminWorkshopAccount(selectedWorkshop.id, data)
+        toast.success('Đã tạo tài khoản cho workshop')
+      }
       setAccountDialogOpen(false)
       setSelectedWorkshop(null)
       await refetchWorkshops()
@@ -358,10 +363,10 @@ export default function SchoolAdminDashboard() {
       const message = error?.response?.data?.message || error?.message || ''
       if (message.includes('đã có tài khoản')) {
         toast.error('Workshop này đã có tài khoản')
-      } else if (message.includes('Email đã tồn tại') || message.includes('Email already')) {
+      } else if (message.includes('Email đã tồn tại') || message.includes('Email already') || message.includes('Email đã được sử dụng')) {
         toast.error('Email đã được sử dụng')
       } else {
-        toast.error(message || 'Không thể tạo tài khoản workshop')
+        toast.error(message || 'Thao tác thất bại')
       }
     } finally {
       setIsCreatingAccount(false)
@@ -571,7 +576,7 @@ export default function SchoolAdminDashboard() {
             <WorkshopManagementTable
               items={workshops}
               isLoading={isFetchingWorkshops}
-              onCreateAccount={handleOpenWorkshopAccount}
+              onManageAccount={handleOpenWorkshopAccount}
             />
           </div>
         )
@@ -677,7 +682,7 @@ export default function SchoolAdminDashboard() {
           setAccountDialogOpen(open)
           if (!open) setSelectedWorkshop(null)
         }}
-        onSubmit={handleCreateWorkshopAccount}
+        onSubmit={handleSubmitWorkshopAccount}
       />
       <BusinessAccountDialog
         open={businessAccountDialogOpen}

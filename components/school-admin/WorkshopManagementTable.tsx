@@ -19,13 +19,13 @@ import { Eye, KeyRound, Presentation } from 'lucide-react'
 interface WorkshopManagementTableProps {
   items: WorkshopManagementItem[]
   isLoading?: boolean
-  onCreateAccount: (item: WorkshopManagementItem) => void
+  onManageAccount: (item: WorkshopManagementItem) => void
 }
 
 export function WorkshopManagementTable({
   items,
   isLoading = false,
-  onCreateAccount,
+  onManageAccount,
 }: WorkshopManagementTableProps) {
   return (
     <Card className="rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
@@ -53,7 +53,6 @@ export function WorkshopManagementTable({
                 <TableRow>
                   <TableHead>Tên hội thảo</TableHead>
                   <TableHead>Địa điểm</TableHead>
-                  <TableHead className="text-right">Sức chứa</TableHead>
                   <TableHead className="text-right">Tổng lượt quét</TableHead>
                   <TableHead className="text-right">Sinh viên duy nhất</TableHead>
                   <TableHead>Tài khoản</TableHead>
@@ -69,7 +68,6 @@ export function WorkshopManagementTable({
                       <div className="text-xs text-slate-400">{item.name}</div>
                     </TableCell>
                     <TableCell>{item.location || 'Chưa cập nhật'}</TableCell>
-                    <TableCell className="text-right font-semibold">{item.capacity}</TableCell>
                     <TableCell className="text-right font-semibold">{item.totalScans}</TableCell>
                     <TableCell className="text-right">{item.uniqueStudents}</TableCell>
                     <TableCell className="whitespace-normal">
@@ -109,10 +107,15 @@ export function WorkshopManagementTable({
                             <span>Xem chi tiết</span>
                           </Link>
                         </Button>
-                        {!item.hasAccount && (
-                          <Button size="sm" onClick={() => onCreateAccount(item)}>
+                        {!item.hasAccount ? (
+                          <Button size="sm" onClick={() => onManageAccount(item)}>
                             <KeyRound className="h-4 w-4" />
                             <span>Tạo tài khoản</span>
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="secondary" onClick={() => onManageAccount(item)}>
+                            <KeyRound className="h-4 w-4" />
+                            <span>Đổi thông tin đăng nhập</span>
                           </Button>
                         )}
                       </div>

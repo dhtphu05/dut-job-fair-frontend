@@ -22,3 +22,11 @@ export async function createSchoolAdminWorkshopAccount(
   const response = await axiosInstance.post(`/api/school-admin/workshops/${boothId}/account`, data)
   return response.data?.data
 }
+
+export async function updateSchoolAdminWorkshopAccount(
+  boothId: string,
+  data: import('@/lib/types').WorkshopAccountUpdateInput,
+) {
+  const response = await axiosInstance.patch(`/api/school-admin/workshops/${boothId}/account`, data)
+  return response.data?.data
+}

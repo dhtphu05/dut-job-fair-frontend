@@ -12,14 +12,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type { WorkshopAccountCreateInput, WorkshopManagementItem } from '@/lib/types'
+import type { WorkshopAccountCreateInput, WorkshopAccountUpdateInput, WorkshopManagementItem } from '@/lib/types'
 
 interface WorkshopAccountDialogProps {
   open: boolean
   workshop: WorkshopManagementItem | null
   isSubmitting?: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (data: WorkshopAccountCreateInput) => void
+  onSubmit: (data: WorkshopAccountCreateInput | WorkshopAccountUpdateInput, isUpdate: boolean) => void
 }
 
 export function WorkshopAccountDialog({
@@ -33,31 +33,49 @@ export function WorkshopAccountDialog({
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
 
+  const isUpdateMode = Boolean(workshop?.hasAccount)
+
   useEffect(() => {
     if (!open) return
-    setEmail('')
-    setPassword('')
-    setName(workshop?.displayName || workshop?.name || '')
-  }, [open, workshop])
+    if (isUpdateMode && workshop?.account) {
+      setEmail(workshop.account.email)
+      setPassword('')
+      setName(workshop.account.name || workshop.displayName || workshop.name)
+    } else {
+      setEmail('')
+      setPassword('')
+      setName(workshop?.displayName || workshop?.name || '')
+    }
+  }, [open, workshop, isUpdateMode])
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    onSubmit({
-      email: email.trim(),
-      password,
-      name: name.trim() || undefined,
-    })
+    
+    if (isUpdateMode) {
+      onSubmit({
+        email: email.trim() || undefined,
+        password: password || undefined,
+        name: name.trim() || undefined,
+      }, true)
+    } else {
+      onSubmit({
+        email: email.trim(),
+        password,
+        name: name.trim() || undefined,
+      }, false)
+    }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Tạo tài khoản hội thảo</DialogTitle>
+          <DialogTitle>{isUpdateMode ? 'Cập nhật tài khoản hội thảo' : 'Tạo tài khoản hội thảo'}</DialogTitle>
           <DialogDescription>
-            {workshop
-              ? `Thiết lập tài khoản đăng nhập cho ${workshop.displayName || workshop.name}.`
-              : 'Thiết lập tài khoản đăng nhập cho hội thảo.'}
+            {isUpdateMode
+              ? `Chỉnh sửa thông tin tài khoản đăng nhập cho ${workshop?.displayName || workshop?.name}.`
+              : (workshop ? `Thiết lập tài khoản đăng nhập mới cho ${workshop.displayName || workshop.name}.` : 'Thiết lập tài khoản đăng nhập cho hội thảo.')
+            }
           </DialogDescription>
         </DialogHeader>
 
@@ -69,7 +87,7 @@ export function WorkshopAccountDialog({
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="cv-workshop@jobfair"
-              required
+              required={!isUpdateMode}
             />
           </div>
 
@@ -80,8 +98,8 @@ export function WorkshopAccountDialog({
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="password123"
-              required
+              placeholder={isUpdateMode ? 'Bỏ trống nếu không muốn thay đổi mật khẩu' : 'password123'}
+              required={!isUpdateMode}
             />
           </div>
 
@@ -100,7 +118,7 @@ export function WorkshopAccountDialog({
               Đóng
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              Tạo tài khoản
+              {isUpdateMode ? 'Lưu thay đổi' : 'Tạo tài khoản'}
             </Button>
           </DialogFooter>
         </form>
