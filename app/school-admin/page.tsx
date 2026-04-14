@@ -33,6 +33,7 @@ import {
 } from 'lucide-react'
 import type {
   Booth,
+  CreateWorkshopInput,
   SchoolTypeStats,
   UnitType,
   WorkshopAccountCreateInput,
@@ -49,11 +50,12 @@ import { BusinessAccountDialog } from '@/components/school-admin/BusinessAccount
 import { BusinessAccountTable } from '@/components/school-admin/BusinessAccountTable'
 import { getSchoolAdminBusinessAccounts, createSchoolAdminBusinessAccount, deleteSchoolAdminBusinessAccount } from '@/lib/school-admin-business-accounts'
 import { WorkshopManagementTable } from '@/components/school-admin/WorkshopManagementTable'
+import { CreateWorkshopDialog } from '@/components/school-admin/CreateWorkshopDialog'
 import { UserProfileHeader } from '@/components/UserProfileHeader'
 import { customAxiosInstance } from '@/lib/axios-instance'
 import { exportOverviewExcel, exportAnalyticsExcel, exportBoothStatsExcel, exportCheckinsExcel } from '@/lib/export-excel'
 import { cn, formatVNDateTime } from '@/lib/utils'
-import { createSchoolAdminWorkshopAccount, getSchoolAdminWorkshops, updateSchoolAdminWorkshopAccount } from '@/lib/school-admin-workshops'
+import { createSchoolAdminWorkshop, createSchoolAdminWorkshopAccount, getSchoolAdminWorkshops, updateSchoolAdminWorkshopAccount } from '@/lib/school-admin-workshops'
 import { toast } from 'sonner'
 
 type DashboardUnit = {
@@ -232,6 +234,8 @@ export default function SchoolAdminDashboard() {
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
   const [businessAccountDialogOpen, setBusinessAccountDialogOpen] = useState(false)
   const [isCreatingBusinessAccount, setIsCreatingBusinessAccount] = useState(false)
+  const [createWorkshopDialogOpen, setCreateWorkshopDialogOpen] = useState(false)
+  const [isCreatingWorkshop, setIsCreatingWorkshop] = useState(false)
 
   const { data: dashboardData, isFetching, refetch } = useQuery({
     queryKey: ['school-admin', 'dashboard'],
@@ -348,6 +352,20 @@ export default function SchoolAdminDashboard() {
   const handleOpenWorkshopAccount = (workshop: WorkshopManagementItem) => {
     setSelectedWorkshop(workshop)
     setAccountDialogOpen(true)
+  }
+
+  const handleCreateWorkshop = async (data: CreateWorkshopInput) => {
+    setIsCreatingWorkshop(true)
+    try {
+      await createSchoolAdminWorkshop(data)
+      toast.success('Tạo workshop mới thành công')
+      setCreateWorkshopDialogOpen(false)
+      refetchWorkshops()
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi tạo workshop')
+    } finally {
+      setIsCreatingWorkshop(false)
+    }
   }
 
   const handleSubmitWorkshopAccount = async (data: any, isUpdate: boolean) => {
@@ -673,6 +691,7 @@ export default function SchoolAdminDashboard() {
               items={workshops}
               isLoading={isFetchingWorkshops}
               onManageAccount={handleOpenWorkshopAccount}
+              onCreateWorkshop={() => setCreateWorkshopDialogOpen(true)}
             />
           </div>
         )
@@ -817,6 +836,12 @@ export default function SchoolAdminDashboard() {
         isSubmitting={isCreatingBusinessAccount}
         onOpenChange={setBusinessAccountDialogOpen}
         onSubmit={handleCreateBusinessAccount}
+      />
+      <CreateWorkshopDialog
+        open={createWorkshopDialogOpen}
+        isSubmitting={isCreatingWorkshop}
+        onOpenChange={setCreateWorkshopDialogOpen}
+        onSubmit={handleCreateWorkshop}
       />
     </DashboardLayout>
   )

@@ -14,25 +14,35 @@ import {
 } from '@/components/ui/table'
 import type { WorkshopManagementItem } from '@/lib/types'
 import { formatVNDateTime } from '@/lib/utils'
-import { Eye, KeyRound, Presentation } from 'lucide-react'
+import { Eye, KeyRound, Plus, Presentation } from 'lucide-react'
 
 interface WorkshopManagementTableProps {
   items: WorkshopManagementItem[]
   isLoading?: boolean
   onManageAccount: (item: WorkshopManagementItem) => void
+  onCreateWorkshop?: () => void
 }
 
 export function WorkshopManagementTable({
   items,
   isLoading = false,
   onManageAccount,
+  onCreateWorkshop,
 }: WorkshopManagementTableProps) {
   return (
     <Card className="rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Presentation className="h-5 w-5" />
-          Quản lý workshop
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Presentation className="h-5 w-5" />
+            Quản lý workshop
+          </div>
+          {onCreateWorkshop && (
+            <Button size="sm" onClick={onCreateWorkshop} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Tạo Workshop Mới
+            </Button>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
