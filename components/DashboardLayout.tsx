@@ -35,9 +35,9 @@ export function DashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="flex flex-col h-[100dvh] bg-white overflow-hidden">
       {/* Header */}
-      <div className="border-b border-border/50 sticky top-0 z-20 bg-white">
+      <div className="border-b border-border/50 shrink-0 z-20 bg-white">
         <div className="flex items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-4">
             <button
@@ -72,7 +72,7 @@ export function DashboardLayout({
         </div>
       </div>
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         {/* Sidebar Navigation */}
 
         {/* Mobile Menu Overlay */}
@@ -86,7 +86,7 @@ export function DashboardLayout({
         {/* Mobile Sidebar */}
         <aside
           className={cn(
-            'fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-2xl transform lg:static lg:translate-x-0 transition-transform duration-300 ease-in-out lg:shadow-none border-r border-border/50',
+            'fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-2xl transform lg:static lg:translate-x-0 transition-transform duration-300 ease-in-out lg:shadow-none border-r border-border/50 shrink-0',
             mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           )}
         >
@@ -132,7 +132,7 @@ export function DashboardLayout({
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-y-auto w-full">
           <div className="p-4 sm:p-6 lg:p-8">{children}</div>
         </main>
       </div>

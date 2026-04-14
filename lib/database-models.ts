@@ -208,7 +208,7 @@ export interface MatchingScore {
     locationMatch: number
     salaryMatch: number
   }
-  calculated At: Date
+  calculatedAt: Date
 }
 
 // ============= REPORTING & ANALYTICS =============
@@ -260,7 +260,7 @@ export interface BoothReport {
       hour: number
       visitors: number
     }[]
-    visitorsBy Major: {
+    visitorsByMajor: {
       major: string
       count: number
     }[]

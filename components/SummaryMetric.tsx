@@ -38,14 +38,14 @@ export function SummaryMetric({
   }
 
   return (
-    <div className="relative overflow-hidden bg-white p-6 rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all duration-500 group border-l-[6px] border-l-amber-400">
-      <div className="absolute top-0 right-0 -mr-12 -mt-12 w-32 h-32 bg-slate-50 rounded-full blur-3xl opacity-50 group-hover:bg-blue-50 transition-colors duration-500" />
+    <div className="relative overflow-hidden bg-white p-5 rounded-2xl border border-slate-100/60 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_10px_30px_rgb(0,0,0,0.06)] transition-all duration-500 group border-l-4 border-l-amber-400">
+      <div className="absolute top-0 right-0 -mr-12 -mt-12 w-24 h-24 bg-slate-50 rounded-full blur-3xl opacity-50 group-hover:bg-blue-50 transition-colors duration-500" />
       
-      <div className="relative flex items-center justify-between gap-4">
-        <div className="space-y-2 flex-1">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.15em] leading-none mb-1 opacity-80">{label}</p>
+      <div className="relative flex items-center justify-between gap-3">
+        <div className="space-y-1.5 flex-1 min-w-0">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] leading-tight mb-0.5 opacity-80 truncate">{label}</p>
           <div className="flex items-baseline gap-2">
-            <h3 className="text-[32px] font-black text-slate-900 tracking-tight leading-none group-hover:text-blue-600 transition-colors duration-300">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight leading-none group-hover:text-blue-600 transition-colors duration-300">
               {value}
             </h3>
             {trend && (
@@ -63,10 +63,10 @@ export function SummaryMetric({
         </div>
 
         <div className={cn(
-          "shrink-0 w-16 h-16 rounded-[22px] flex items-center justify-center transition-all duration-500 transform group-hover:scale-110 group-hover:rotate-3 shadow-sm",
-          "bg-slate-50 group-hover:bg-white border border-slate-100 group-hover:shadow-lg group-hover:shadow-blue-500/10"
+          "shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500 transform group-hover:scale-110 group-hover:rotate-3 shadow-sm",
+          "bg-slate-50 group-hover:bg-white border border-slate-100 group-hover:shadow-md group-hover:shadow-blue-500/10"
         )}>
-          <Icon className="h-8 w-8 text-blue-600 group-hover:animate-pulse" />
+          <Icon className="h-6 w-6 text-blue-600 group-hover:animate-pulse" />
         </div>
       </div>
     </div>

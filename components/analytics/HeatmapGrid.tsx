@@ -1,7 +1,5 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-
 interface HeatmapData {
   name: string
   value: number
@@ -32,46 +30,41 @@ export function HeatmapGrid({ data, title, maxValue }: HeatmapGridProps) {
   }
 
   return (
-    <Card className="col-span-1 md:col-span-2">
-      <CardHeader>
-        <CardTitle className="text-lg">{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2.5">
-          {sorted.map((item, index) => {
-            const pct = item.value / max
-            const sharePct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0'
-            return (
-              <div key={index} className="flex items-center gap-3 group">
-                {/* Rank */}
-                <span className="w-5 text-xs text-muted-foreground text-right flex-shrink-0">
-                  {index + 1}
-                </span>
+    <div className="w-full h-full">
+      <h3 className="text-lg font-bold text-slate-800 mb-4">{title}</h3>
+      <div className="space-y-4">
+        {sorted.map((item, index) => {
+          const pct = item.value / max
+          const sharePct = total > 0 ? ((item.value / total) * 100).toFixed(1) : '0'
+          return (
+            <div key={index} className="flex items-center gap-3 group">
+              {/* Rank */}
+              <span className="w-5 text-xs text-slate-400 font-mono text-right flex-shrink-0">
+                {String(index + 1).padStart(2, '0')}
+              </span>
 
-                {/* Name */}
-                <span className="w-44 text-sm font-medium truncate flex-shrink-0" title={item.name}>
-                  {item.name}
-                </span>
+              {/* Name */}
+              <span className="w-44 text-sm font-semibold text-slate-700 truncate flex-shrink-0" title={item.name}>
+                {item.name}
+              </span>
 
-                {/* Bar */}
-                <div className="flex-1 bg-muted rounded-full h-5 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${getBarColor(pct)}`}
-                    style={{ width: `${Math.max(pct * 100, 2)}%` }}
-                  />
-                </div>
-
-                {/* Count + share */}
-                <div className="flex items-baseline gap-1 flex-shrink-0 w-20 justify-end">
-                  <span className={`text-sm font-bold ${getTextColor(pct)}`}>{item.value}</span>
-                  <span className="text-xs text-muted-foreground">({sharePct}%)</span>
-                </div>
+              {/* Bar Container */}
+              <div className="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-1000 ease-out ${getBarColor(pct)}`}
+                  style={{ width: `${Math.max(pct * 100, 2)}%` }}
+                />
               </div>
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
+
+              {/* Count + share */}
+              <div className="flex items-baseline gap-1 flex-shrink-0 w-24 justify-end">
+                <span className={`text-sm font-bold ${getTextColor(pct)}`}>{item.value.toLocaleString()}</span>
+                <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">({sharePct}%)</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
-

@@ -221,7 +221,7 @@ function RecentScansPanel({
 }
 
 export default function SchoolAdminDashboard() {
-  const [activeTab, setActiveTab] = useState('booth-overview')
+  const [activeTab, setActiveTab] = useState('event-overview')
   const [activeUnitType, setActiveUnitType] = useState<UnitType>('booth')
   const [isExporting, setIsExporting] = useState(false)
   const [accountDialogOpen, setAccountDialogOpen] = useState(false)
@@ -435,8 +435,7 @@ export default function SchoolAdminDashboard() {
   }
 
   const navItems = [
-    { id: 'booth-overview', label: 'Booth doanh nghiệp', icon: <BarChart3 className="h-5 w-5" /> },
-    { id: 'workshop-overview', label: 'Hội thảo', icon: <BarChart3 className="h-5 w-5" /> },
+    { id: 'event-overview', label: 'Thống kê theo nhóm', icon: <BarChart3 className="h-5 w-5" /> },
     { id: 'workshop-management', label: 'Quản lý workshop', icon: <Building2 className="h-5 w-5" /> },
     { id: 'business-accounts', label: 'Tài khoản doanh nghiệp', icon: <Building2 className="h-5 w-5" /> },
     { id: 'booth-stats', label: 'Thống kê đơn vị', icon: <TrendingUp className="h-5 w-5" /> },
@@ -457,28 +456,23 @@ export default function SchoolAdminDashboard() {
   const avgScans = totalUnits ? selectedTypeStats.totalCheckins / totalUnits : 0
 
   const handleTabChange = (tab: string) => {
-    if (tab === 'booth-overview') {
-      setActiveUnitType('booth')
-    } else if (tab === 'workshop-overview') {
-      setActiveUnitType('workshop')
-    }
-
     setActiveTab(tab)
   }
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'booth-overview':
-      case 'workshop-overview':
+      case 'event-overview':
         return (
           <div className="space-y-8">
+            {/* Tab toggle — top, same as other sections */}
+            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
                 <h3 className="text-xl font-bold text-slate-900 tracking-tight">Thống kê sự kiện theo nhóm</h3>
                 <p className="text-sm text-slate-400 italic">Tách riêng dữ liệu booth doanh nghiệp và workshop</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
                 <Button
                   size="sm"
                   onClick={handleExport}
@@ -516,7 +510,7 @@ export default function SchoolAdminDashboard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <SummaryMetric
                 label="Sinh viên tham gia"
                 value={selectedTypeStats.uniqueVisitors}
@@ -714,35 +708,40 @@ function AnalyticsContent({
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <SummaryMetric
-          label={`Lượt check-in ${selectedMeta.title.toLowerCase()}`}
+          label="Tổng lượt check-in"
           value={selectedDistribution.count}
           icon={ScanQrCode}
-          description="Lấy từ checkinTypeDistribution"
+          description={`Thuộc nhóm ${selectedMeta.title}`}
         />
         <SummaryMetric
-          label={`Sinh viên unique ${selectedMeta.title.toLowerCase()}`}
+          label="Sinh viên unique"
           value={selectedDistribution.uniqueStudents}
           icon={Users}
-          description="Lấy từ checkinTypeDistribution"
+          description={`Số sinh viên khác nhau đã tham gia ${selectedMeta.title.toLowerCase()}`}
         />
       </div>
 
-      <ComparisonBarChart
-        data={boothVsWorkshop}
-        title="So sánh booth và workshop"
-        dataKeys={[
-          { key: 'Booth', color: '#2563EB', name: 'Booth doanh nghiệp' },
-          { key: 'Workshop', color: '#F97316', name: 'Hội thảo' },
-        ]}
-      />
-
-      <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-        <AreaTrendsChart
-          data={peakHoursData.map((h) => ({ name: `${h.hour}:00`, value: h.count }))}
-          title="Phân bố sinh viên theo giờ"
-          dataKey="value"
-          fill="#3B82F6"
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+          <ComparisonBarChart
+            data={[
+              { name: 'Tổng lượt check-in', 'Số lượng': selectedDistribution.count },
+              { name: 'Sinh viên unique', 'Số lượng': selectedDistribution.uniqueStudents },
+            ]}
+            title={`Thống kê ${selectedMeta.title} — lượt check-in và sinh viên`}
+            dataKeys={[
+              { key: 'Số lượng', color: selectedDistribution.type === 'workshop' ? '#F97316' : '#2563EB', name: 'Số lượng' },
+            ]}
+          />
+        </div>
+        <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+          <AreaTrendsChart
+            data={peakHoursData.map((h) => ({ name: `${h.hour}:00`, value: h.count }))}
+            title="Phân bố sinh viên theo giờ"
+            dataKey="value"
+            fill="#3B82F6"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

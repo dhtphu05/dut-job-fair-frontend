@@ -203,16 +203,12 @@ export function BoothScanStats({ filterType = 'all' }: BoothScanStatsProps) {
                     <th className="text-left py-3 px-2 font-semibold text-muted-foreground">Loại</th>
                     <th className="text-right py-3 px-2 font-semibold text-muted-foreground">Tổng lượt quét</th>
                     <th className="text-right py-3 px-2 font-semibold text-muted-foreground">Sinh viên unique</th>
-                    <th className="text-right py-3 px-2 font-semibold text-muted-foreground">Tỷ lệ quét lại</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...filteredStats]
                     .sort((a, b) => b.totalScans - a.totalScans)
                     .map((booth, i) => {
-                      const repeatRate = booth.uniqueStudents > 0
-                        ? ((booth.totalScans / booth.uniqueStudents - 1) * 100).toFixed(1)
-                        : '0.0'
                       return (
                         <tr key={booth.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="py-3 px-2">
@@ -241,7 +237,6 @@ export function BoothScanStats({ filterType = 'all' }: BoothScanStatsProps) {
                           </td>
                           <td className="py-3 px-2 text-right font-semibold">{booth.totalScans}</td>
                           <td className="py-3 px-2 text-right">{booth.uniqueStudents}</td>
-                          <td className="py-3 px-2 text-right text-muted-foreground">{repeatRate}%</td>
                         </tr>
                       )
                     })}
