@@ -157,7 +157,9 @@ export function exportSchoolAdminExcel(payload: ExportPayload, filename?: string
   // ── Sheet 2: Phân bố theo giờ ──────────────────────────────────────────────
   const wsHourly = styledSheet(
     ['Giờ', 'Lượt quét'],
-    payload.hourlyDist.map((h) => [`${h.hour}:00`, h.count]),
+    payload.hourlyDist.map((h) => ({ hour: (h.hour + 7) % 24, count: h.count }))
+      .sort((a, b) => a.hour - b.hour)
+      .map((h) => [`${h.hour.toString().padStart(2, '0')}:00`, h.count]),
   )
   XLSX.utils.book_append_sheet(wb, wsHourly, 'Theo giờ')
 

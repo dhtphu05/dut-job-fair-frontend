@@ -304,7 +304,10 @@ export default function SchoolAdminDashboard() {
   const filteredRecentScans = recentScans.filter((item) => item.booth?.type === activeUnitType)
 
   const hourlyDist = statsData?.hourlyDistribution ?? []
-  const peakHoursData = hourlyDist.map((h) => ({ hour: h.hour, count: h.count }))
+  const peakHoursData = hourlyDist.map((h) => ({ 
+    hour: (h.hour + 7) % 24, 
+    count: h.count 
+  })).sort((a, b) => a.hour - b.hour)
   const majorDist = statsData?.majorDistribution ?? []
   const deptDist = statsData?.departmentDistribution ?? []
   const yearDist = statsData?.yearDistribution ?? []
