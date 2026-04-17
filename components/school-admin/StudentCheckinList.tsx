@@ -60,6 +60,11 @@ async function fetchCheckins(page: number): Promise<CheckinsResponse> {
 
 interface StudentCheckinListProps {
   defaultTypeFilter?: UnitType | 'all'
+  totalsByType?: {
+    all: number
+    booth: number
+    workshop: number
+  }
 }
 
 function typeBadge(type?: UnitType) {
@@ -76,7 +81,7 @@ function typeBadge(type?: UnitType) {
   }
 }
 
-export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckinListProps) {
+export function StudentCheckinList({ defaultTypeFilter = 'all', totalsByType }: StudentCheckinListProps) {
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterDept, setFilterDept] = useState<string | null>(null)
@@ -108,6 +113,12 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
       return matchSearch && matchDept && matchType
     })
   }, [items, searchTerm, filterDept, filterType])
+
+  const summaryTotal = useMemo(() => {
+    if (!totalsByType) return total
+    if (filterType === 'all') return totalsByType.all
+    return totalsByType[filterType]
+  }, [filterType, total, totalsByType])
 
   const uniqueDepts = useMemo(
     () => [...new Set(items.map((c) => c.student.department).filter(Boolean))],
@@ -162,7 +173,7 @@ export function StudentCheckinList({ defaultTypeFilter = 'all' }: StudentCheckin
           <h3 className="text-lg font-semibold">Danh sách check-in sinh viên</h3>
           <p className="text-sm text-muted-foreground">
             Tổng{' '}
-            <span className="font-semibold text-foreground">{total}</span> lượt check-in
+            <span className="font-semibold text-foreground">{summaryTotal}</span> lượt check-in
           </p>
         </div>
         <Button

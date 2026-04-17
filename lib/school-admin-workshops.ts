@@ -1,4 +1,5 @@
 import axiosInstance from '@/lib/axios-instance'
+import * as XLSX from 'xlsx'
 import type {
   CreateWorkshopInput,
   WorkshopAccountCreateInput,
@@ -44,20 +45,26 @@ export const downloadSchoolAdminWorkshopAttendanceExcel = async (boothId: string
     responseType: 'blob',
   })
   const contentDisposition = response.headers['content-disposition']
-  let filename = 'workshop-attendance.xls'
+  let filename = 'workshop-attendance.xlsx'
   if (contentDisposition) {
-    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
-    if (filenameMatch && filenameMatch.length === 2) {
-      filename = filenameMatch[1]
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+    if (utf8Match?.[1]) {
+      filename = decodeURIComponent(utf8Match[1])
+    } else {
+      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/i)
+      if (filenameMatch && filenameMatch.length === 2) {
+        filename = filenameMatch[1]
+      }
     }
   }
+  if (/\.xls$/i.test(filename)) {
+    filename = filename.replace(/\.xls$/i, '.xlsx')
+  }
+  if (!/\.xlsx$/i.test(filename)) {
+    filename = `${filename}.xlsx`
+  }
 
-  const url = window.URL.createObjectURL(new Blob([response.data]))
-  const link = document.createElement('a')
-  link.href = url
-  link.setAttribute('download', filename)
-  document.body.appendChild(link)
-  link.click()
-  link.parentNode?.removeChild(link)
-  window.URL.revokeObjectURL(url)
+  const arrayBuffer = await (response.data as Blob).arrayBuffer()
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+  XLSX.writeFile(workbook, filename)
 }
