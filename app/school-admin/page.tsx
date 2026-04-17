@@ -57,6 +57,7 @@ import { exportOverviewExcel, exportAnalyticsExcel, exportBoothStatsExcel, expor
 import { cn, formatVNDateTime } from '@/lib/utils'
 import { createSchoolAdminWorkshop, createSchoolAdminWorkshopAccount, getSchoolAdminWorkshops, updateSchoolAdminWorkshopAccount } from '@/lib/school-admin-workshops'
 import { toast } from 'sonner'
+import * as XLSX from 'xlsx'
 
 type DashboardUnit = {
   id: string
@@ -118,6 +119,25 @@ type BoothApiItem = {
   business?: { id: string; name: string } | string | null
 }
 
+type AnalyticsCheckinItem = {
+  id: string
+  checkInTime: string
+  student: {
+    id: string
+    major: string | null
+    department: string | null
+    year: number | null
+  }
+  booth: {
+    id: string
+    type?: UnitType
+  }
+}
+
+type AnalyticsCheckinsResponse = {
+  items?: AnalyticsCheckinItem[]
+}
+
 async function fetchDashboard(): Promise<DashboardResponse> {
   const res = await customAxiosInstance<any>('/api/school-admin/dashboard', { method: 'GET' })
   return (res as any).data ?? {}
@@ -131,6 +151,18 @@ async function fetchStats(): Promise<StatsResponse> {
 async function fetchBoothsRaw(): Promise<BoothApiItem[]> {
   const res = await customAxiosInstance<any>('/api/school-admin/booths', { method: 'GET' })
   return ((res as any).data ?? []) as BoothApiItem[]
+}
+
+async function fetchAnalyticsCheckins(): Promise<AnalyticsCheckinItem[]> {
+  const res = await customAxiosInstance<any>('/api/school-admin/checkins?page=1&pageSize=99999', { method: 'GET' })
+  const data = (res as any).data as AnalyticsCheckinsResponse | undefined
+  return data?.items ?? []
+}
+
+function parseCheckinDate(value: string): Date | null {
+  const normalized = value?.includes('T') ? value : value?.replace(' ', 'T')
+  const date = new Date(normalized)
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
 function getUnitMeta(type: UnitType) {
@@ -249,6 +281,16 @@ export default function SchoolAdminDashboard() {
     refetchInterval: 60_000,
   })
 
+  const {
+    data: analyticsCheckins = [],
+    refetch: refetchAnalyticsCheckins,
+  } = useQuery({
+    queryKey: ['school-admin', 'analytics-checkins'],
+    queryFn: fetchAnalyticsCheckins,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  })
+
   const { data: boothsRaw = [], refetch: refetchBooths } = useQuery({
     queryKey: ['school-admin', 'booths-raw'],
     queryFn: fetchBoothsRaw,
@@ -310,16 +352,121 @@ export default function SchoolAdminDashboard() {
   const recentScans = dashboardData?.recentScans ?? []
   const filteredRecentScans = recentScans.filter((item) => item.booth?.type === activeUnitType)
 
-  const hourlyDist = statsData?.hourlyDistribution ?? []
-  const peakHoursData = hourlyDist.map((h) => ({ 
-    hour: (h.hour + 7) % 24, 
-    count: h.count 
-  })).sort((a, b) => a.hour - b.hour)
-  const majorDist = statsData?.majorDistribution ?? []
-  const deptDist = statsData?.departmentDistribution ?? []
-  const yearDist = statsData?.yearDistribution ?? []
-  const dailyDist = statsData?.dailyDistribution ?? []
-  const checkinTypeDistribution = statsData?.checkinTypeDistribution ?? []
+  const fallbackStats = statsData ?? {}
+  const filteredAnalyticsCheckins = analyticsCheckins.filter((item) => item.booth?.type === activeUnitType)
+
+  const hourlyDist = useMemo(() => {
+    const buckets = new Array<number>(24).fill(0)
+    filteredAnalyticsCheckins.forEach((item) => {
+      const date = parseCheckinDate(item.checkInTime)
+      if (!date) return
+      buckets[date.getHours()] += 1
+    })
+
+    const hasData = buckets.some((count) => count > 0)
+    if (!hasData) {
+      return fallbackStats.hourlyDistribution ?? []
+    }
+
+    return buckets.map((count, hour) => ({ hour, count }))
+  }, [fallbackStats.hourlyDistribution, filteredAnalyticsCheckins])
+
+  const peakHoursData = hourlyDist
+    .map((h) => ({ hour: h.hour, count: h.count }))
+    .sort((a, b) => a.hour - b.hour)
+
+  const majorDist = useMemo(() => {
+    const counts = new Map<string, number>()
+    filteredAnalyticsCheckins.forEach((item) => {
+      const major = item.student?.major?.trim()
+      if (!major) return
+      counts.set(major, (counts.get(major) ?? 0) + 1)
+    })
+    if (counts.size === 0) {
+      return fallbackStats.majorDistribution ?? []
+    }
+    return Array.from(counts.entries())
+      .map(([major, count]) => ({ major, count }))
+      .sort((a, b) => b.count - a.count)
+  }, [fallbackStats.majorDistribution, filteredAnalyticsCheckins])
+
+  const deptDist = useMemo(() => {
+    const counts = new Map<string, number>()
+    filteredAnalyticsCheckins.forEach((item) => {
+      const department = item.student?.department?.trim()
+      if (!department) return
+      counts.set(department, (counts.get(department) ?? 0) + 1)
+    })
+    if (counts.size === 0) {
+      return fallbackStats.departmentDistribution ?? []
+    }
+    return Array.from(counts.entries())
+      .map(([department, count]) => ({ department, count }))
+      .sort((a, b) => b.count - a.count)
+  }, [fallbackStats.departmentDistribution, filteredAnalyticsCheckins])
+
+  const yearDist = useMemo(() => {
+    const counts = new Map<number, number>()
+    filteredAnalyticsCheckins.forEach((item) => {
+      const year = item.student?.year
+      if (!year) return
+      counts.set(year, (counts.get(year) ?? 0) + 1)
+    })
+    if (counts.size === 0) {
+      return fallbackStats.yearDistribution ?? []
+    }
+    return Array.from(counts.entries())
+      .map(([year, count]) => ({ year, count }))
+      .sort((a, b) => a.year - b.year)
+  }, [fallbackStats.yearDistribution, filteredAnalyticsCheckins])
+
+  const dailyDist = useMemo(() => {
+    const counts = new Map<string, { count: number; students: Set<string> }>()
+    filteredAnalyticsCheckins.forEach((item) => {
+      const date = parseCheckinDate(item.checkInTime)
+      if (!date) return
+      const key = date.toISOString().slice(0, 10)
+      const existing = counts.get(key) ?? { count: 0, students: new Set<string>() }
+      existing.count += 1
+      if (item.student?.id) {
+        existing.students.add(item.student.id)
+      }
+      counts.set(key, existing)
+    })
+    if (counts.size === 0) {
+      return fallbackStats.dailyDistribution ?? []
+    }
+    return Array.from(counts.entries())
+      .map(([date, value]) => ({
+        date,
+        count: value.count,
+        uniqueStudents: value.students.size,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date))
+  }, [fallbackStats.dailyDistribution, filteredAnalyticsCheckins])
+
+  const checkinTypeDistribution = useMemo(() => {
+    const init = {
+      booth: { type: 'booth' as UnitType, count: 0, uniqueStudents: 0, studentIds: new Set<string>() },
+      workshop: { type: 'workshop' as UnitType, count: 0, uniqueStudents: 0, studentIds: new Set<string>() },
+    }
+    analyticsCheckins.forEach((item) => {
+      const type = item.booth?.type
+      if (type !== 'booth' && type !== 'workshop') return
+      init[type].count += 1
+      if (item.student?.id) {
+        init[type].studentIds.add(item.student.id)
+      }
+    })
+    const hasData = init.booth.count > 0 || init.workshop.count > 0
+    if (!hasData) {
+      return fallbackStats.checkinTypeDistribution ?? []
+    }
+    return [
+      { type: 'booth' as UnitType, count: init.booth.count, uniqueStudents: init.booth.studentIds.size },
+      { type: 'workshop' as UnitType, count: init.workshop.count, uniqueStudents: init.workshop.studentIds.size },
+    ]
+  }, [analyticsCheckins, fallbackStats.checkinTypeDistribution])
 
   const boothVsWorkshop = [
     {
@@ -347,6 +494,7 @@ export default function SchoolAdminDashboard() {
     refetchBooths()
     refetchWorkshops()
     refetchBusinessAccounts()
+    refetchAnalyticsCheckins()
   }
 
   const handleOpenWorkshopAccount = (workshop: WorkshopManagementItem) => {
@@ -526,22 +674,28 @@ export default function SchoolAdminDashboard() {
         responseType: 'blob'
       })
       const contentDisposition = rawResponse.headers['content-disposition']
-      let filename = 'booth-visitors.xls'
+      let filename = 'booth-visitors.xlsx'
       if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/)
-        if (filenameMatch && filenameMatch.length === 2) {
-          filename = filenameMatch[1]
+        const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+        if (utf8Match?.[1]) {
+          filename = decodeURIComponent(utf8Match[1])
+        } else {
+          const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/i)
+          if (filenameMatch && filenameMatch.length === 2) {
+            filename = filenameMatch[1]
+          }
         }
       }
+      if (/\.xls$/i.test(filename)) {
+        filename = filename.replace(/\.xls$/i, '.xlsx')
+      }
+      if (!/\.xlsx$/i.test(filename)) {
+        filename = `${filename}.xlsx`
+      }
 
-      const url = window.URL.createObjectURL(new Blob([rawResponse.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', filename)
-      document.body.appendChild(link)
-      link.click()
-      link.parentNode?.removeChild(link)
-      window.URL.revokeObjectURL(url)
+      const arrayBuffer = await (rawResponse.data as Blob).arrayBuffer()
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+      XLSX.writeFile(workbook, filename)
       toast.success('Đã tải xuống file Excel danh sách sinh viên thăm quan')
     } catch (error) {
       toast.error('Có lỗi xảy ra khi tải file Excel')
@@ -748,7 +902,14 @@ export default function SchoolAdminDashboard() {
               </div>
             </div>
             <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-              <StudentCheckinList defaultTypeFilter={activeUnitType} />
+              <StudentCheckinList
+                defaultTypeFilter={activeUnitType}
+                totalsByType={{
+                  all: checkinTypeDistribution.reduce((sum, item) => sum + item.count, 0),
+                  booth: checkinTypeDistribution.find((item) => item.type === 'booth')?.count ?? 0,
+                  workshop: checkinTypeDistribution.find((item) => item.type === 'workshop')?.count ?? 0,
+                }}
+              />
             </div>
           </div>
         )
