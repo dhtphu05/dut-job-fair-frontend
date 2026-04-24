@@ -20,6 +20,7 @@ interface WorkshopAccountDialogProps {
   isSubmitting?: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: WorkshopAccountCreateInput | WorkshopAccountUpdateInput, isUpdate: boolean) => void
+  unitLabel?: string
 }
 
 export function WorkshopAccountDialog({
@@ -28,6 +29,7 @@ export function WorkshopAccountDialog({
   isSubmitting = false,
   onOpenChange,
   onSubmit,
+  unitLabel = 'hội thảo',
 }: WorkshopAccountDialogProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -70,11 +72,11 @@ export function WorkshopAccountDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isUpdateMode ? 'Cập nhật tài khoản hội thảo' : 'Tạo tài khoản hội thảo'}</DialogTitle>
+          <DialogTitle>{isUpdateMode ? `Cập nhật tài khoản ${unitLabel}` : `Tạo tài khoản ${unitLabel}`}</DialogTitle>
           <DialogDescription>
             {isUpdateMode
               ? `Chỉnh sửa thông tin tài khoản đăng nhập cho ${workshop?.displayName || workshop?.name}.`
-              : (workshop ? `Thiết lập tài khoản đăng nhập mới cho ${workshop.displayName || workshop.name}.` : 'Thiết lập tài khoản đăng nhập cho hội thảo.')
+              : (workshop ? `Thiết lập tài khoản đăng nhập mới cho ${workshop.displayName || workshop.name}.` : `Thiết lập tài khoản đăng nhập cho ${unitLabel}.`)
             }
           </DialogDescription>
         </DialogHeader>
@@ -109,7 +111,7 @@ export function WorkshopAccountDialog({
               id="workshop-account-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Tài khoản hội thảo CV Ấn tượng"
+              placeholder={`Tài khoản ${unitLabel} tiêu biểu`}
             />
           </div>
 

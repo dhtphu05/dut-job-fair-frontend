@@ -9,6 +9,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Booth } from '@/lib/types'
+import { getUnitMeta } from '@/lib/unit-meta'
 import { cn } from '@/lib/utils'
 import { Building2 } from 'lucide-react'
 
@@ -19,16 +20,17 @@ interface BoothsTableProps {
 }
 
 function getTypeBadge(type?: Booth['type']) {
-  if (type === 'workshop') {
+  if (!type) {
     return {
-      label: 'Hội thảo',
-      className: 'bg-orange-100 text-orange-700 hover:bg-orange-100 border-transparent',
+      label: 'Booth',
+      className: 'bg-blue-100 text-blue-700 hover:bg-blue-100 border-transparent',
     }
   }
 
+  const meta = getUnitMeta(type)
   return {
-    label: 'Booth',
-    className: 'bg-blue-100 text-blue-700 hover:bg-blue-100 border-transparent',
+    label: meta.shortTitle,
+    className: meta.badgeClass,
   }
 }
 
@@ -53,7 +55,7 @@ export function BoothsTable({ booths, isLoading = false, title = 'Tổng quan đ
             <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6">
               <Building2 className="h-12 w-12 text-blue-200" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Chưa có gian hàng nào</h3>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Chưa có đơn vị nào</h3>
             <p className="text-slate-500 max-w-[280px]">
               Dữ liệu đang được cập nhật. Vui lòng quay lại sau hoặc liên hệ quản trị viên.
             </p>
@@ -84,7 +86,7 @@ export function BoothsTable({ booths, isLoading = false, title = 'Tổng quan đ
                   <div>
                     <h4 className="font-bold text-slate-900 text-lg">{b.company}</h4>
                     <p className="text-sm text-slate-500 font-medium">
-                      {b.type === 'workshop' ? 'Địa điểm' : 'Nhân viên'}: {b.type === 'workshop' ? (b.position || '---') : (b.staffName || '---')}
+                      {b.type === 'workshop' || b.type === 'totnghiep' ? 'Địa điểm' : 'Nhân viên'}: {b.type === 'workshop' || b.type === 'totnghiep' ? (b.position || '---') : (b.staffName || '---')}
                     </p>
                   </div>
                   <div className="pt-2 flex items-center justify-between">
@@ -120,7 +122,7 @@ export function BoothsTable({ booths, isLoading = false, title = 'Tổng quan đ
                         </TableCell>
                         <TableCell className="font-semibold">{booth.company}</TableCell>
                         <TableCell className="text-slate-500 font-medium">
-                          {booth.type === 'workshop' ? (booth.position || '---') : (booth.staffName || '---')}
+                          {booth.type === 'workshop' || booth.type === 'totnghiep' ? (booth.position || '---') : (booth.staffName || '---')}
                         </TableCell>
                         <TableCell className="text-right font-black text-lg text-slate-900">{booth.visitorCount}</TableCell>
                         <TableCell className="text-center">

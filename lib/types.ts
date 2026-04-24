@@ -7,7 +7,8 @@ export type UserRole = 'visitor' | 'school_admin' | 'business_admin' | 'superadm
 export type ScanStatus = 'success' | 'duplicate' | 'error' | 'pending'
 
 export type PrizeType = 'early_bird' | 'lucky_draw' | 'booth_special'
-export type UnitType = 'booth' | 'workshop'
+export type UnitType = 'booth' | 'workshop' | 'totnghiep'
+export type BusinessType = UnitType
 
 // User types
 export interface User {
@@ -110,7 +111,9 @@ export interface BoothStats {
 export interface WorkshopAttendanceItem {
   stt: number
   studentId?: string
+  unitName?: string
   workshopName?: string
+  totnghiepName?: string
   fullName: string
   studentCode: string
   className: string | null
@@ -189,6 +192,8 @@ export interface WorkshopManagementItem {
   account?: WorkshopManagementAccount | null
 }
 
+export type ManagedUnitItem = WorkshopManagementItem
+
 export interface WorkshopDetailResponse {
   workshop: {
     id: string
@@ -224,6 +229,8 @@ export interface WorkshopDetailResponse {
   }>
 }
 
+export type ManagedUnitDetailResponse = WorkshopDetailResponse
+
 export interface WorkshopAccountCreateInput {
   email: string
   password: string
@@ -235,6 +242,8 @@ export interface CreateWorkshopInput {
   email: string
   password: string
 }
+
+export type CreateManagedUnitInput = CreateWorkshopInput
 
 export interface WorkshopAccountUpdateInput {
   email?: string

@@ -21,6 +21,14 @@ interface WorkshopManagementTableProps {
   isLoading?: boolean
   onManageAccount: (item: WorkshopManagementItem) => void
   onCreateWorkshop?: () => void
+  title?: string
+  emptyText?: string
+  createButtonLabel?: string
+  detailHrefBase?: string
+  detailButtonLabel?: string
+  createAccountLabel?: string
+  updateAccountLabel?: string
+  nameColumnLabel?: string
 }
 
 export function WorkshopManagementTable({
@@ -28,6 +36,14 @@ export function WorkshopManagementTable({
   isLoading = false,
   onManageAccount,
   onCreateWorkshop,
+  title = 'Quản lý workshop',
+  emptyText = 'Chưa có workshop nào trong hệ thống.',
+  createButtonLabel = 'Tạo Workshop Mới',
+  detailHrefBase = '/school-admin/workshops',
+  detailButtonLabel = 'Xem chi tiết',
+  createAccountLabel = 'Tạo tài khoản',
+  updateAccountLabel = 'Đổi thông tin đăng nhập',
+  nameColumnLabel = 'Tên hội thảo',
 }: WorkshopManagementTableProps) {
   return (
     <Card className="rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
@@ -35,12 +51,12 @@ export function WorkshopManagementTable({
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Presentation className="h-5 w-5" />
-            Quản lý workshop
+            {title}
           </div>
           {onCreateWorkshop && (
             <Button size="sm" onClick={onCreateWorkshop} className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/20">
               <Plus className="mr-1.5 h-4 w-4" />
-              Tạo Workshop Mới
+              {createButtonLabel}
             </Button>
           )}
         </CardTitle>
@@ -54,14 +70,14 @@ export function WorkshopManagementTable({
           </div>
         ) : items.length === 0 ? (
           <div className="py-16 text-center text-sm text-slate-500">
-            Chưa có workshop nào trong hệ thống.
+            {emptyText}
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-100">
             <Table>
-              <TableHeader className="bg-slate-50">
-                <TableRow>
-                  <TableHead>Tên hội thảo</TableHead>
+                <TableHeader className="bg-slate-50">
+                  <TableRow>
+                  <TableHead>{nameColumnLabel}</TableHead>
                   <TableHead>Địa điểm</TableHead>
                   <TableHead className="text-right">Tổng lượt quét</TableHead>
                   <TableHead className="text-right">Sinh viên duy nhất</TableHead>
@@ -112,20 +128,20 @@ export function WorkshopManagementTable({
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button asChild variant="outline" size="sm">
-                          <Link href={`/school-admin/workshops/${item.id}`}>
+                          <Link href={`${detailHrefBase}/${item.id}`}>
                             <Eye className="h-4 w-4" />
-                            <span>Xem chi tiết</span>
+                            <span>{detailButtonLabel}</span>
                           </Link>
                         </Button>
                         {!item.hasAccount ? (
                           <Button size="sm" onClick={() => onManageAccount(item)}>
                             <KeyRound className="h-4 w-4" />
-                            <span>Tạo tài khoản</span>
+                            <span>{createAccountLabel}</span>
                           </Button>
                         ) : (
                           <Button size="sm" variant="secondary" onClick={() => onManageAccount(item)}>
                             <KeyRound className="h-4 w-4" />
-                            <span>Đổi thông tin đăng nhập</span>
+                            <span>{updateAccountLabel}</span>
                           </Button>
                         )}
                       </div>

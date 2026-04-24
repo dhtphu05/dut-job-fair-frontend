@@ -36,7 +36,6 @@ import type {
   CreateWorkshopInput,
   SchoolTypeStats,
   UnitType,
-  WorkshopAccountCreateInput,
   WorkshopManagementItem,
   BusinessAccountCreateInput,
 } from '@/lib/types'
@@ -56,6 +55,8 @@ import { customAxiosInstance } from '@/lib/axios-instance'
 import { exportOverviewExcel, exportAnalyticsExcel, exportBoothStatsExcel, exportCheckinsExcel } from '@/lib/export-excel'
 import { cn, formatVNDateTime } from '@/lib/utils'
 import { createSchoolAdminWorkshop, createSchoolAdminWorkshopAccount, getSchoolAdminWorkshops, updateSchoolAdminWorkshopAccount } from '@/lib/school-admin-workshops'
+import { createSchoolAdminTotnghiep, createSchoolAdminTotnghiepAccount, getSchoolAdminTotnghieps, updateSchoolAdminTotnghiepAccount } from '@/lib/school-admin-totnghieps'
+import { UNIT_TYPE_OPTIONS, getUnitMeta } from '@/lib/unit-meta'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 
@@ -94,6 +95,7 @@ type DashboardResponse = {
     uniqueVisitors?: number
     totalBooths?: number
     totalWorkshops?: number
+    totalTotnghieps?: number
     byType?: Partial<Record<UnitType, SchoolTypeStats>>
   }
   booths?: DashboardUnit[]
@@ -165,24 +167,6 @@ function parseCheckinDate(value: string): Date | null {
   return Number.isNaN(date.getTime()) ? null : date
 }
 
-function getUnitMeta(type: UnitType) {
-  if (type === 'workshop') {
-    return {
-      title: 'Hội thảo',
-      plural: 'Hội thảo',
-      badgeClass: 'bg-orange-100 text-orange-700 border-transparent',
-      accentClass: 'bg-orange-50 text-orange-700',
-    }
-  }
-
-  return {
-    title: 'Booth doanh nghiệp',
-    plural: 'Booth doanh nghiệp',
-    badgeClass: 'bg-blue-100 text-blue-700 border-transparent',
-    accentClass: 'bg-blue-50 text-blue-700',
-  }
-}
-
 function UnitToggle({
   activeUnitType,
   onChange,
@@ -192,8 +176,9 @@ function UnitToggle({
 }) {
   return (
     <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
-      {(['booth', 'workshop'] as UnitType[]).map((type) => {
+      {UNIT_TYPE_OPTIONS.map((type) => {
         const isActive = activeUnitType === type
+        const meta = getUnitMeta(type)
         return (
           <button
             key={type}
@@ -201,10 +186,10 @@ function UnitToggle({
             onClick={() => onChange(type)}
             className={cn(
               'rounded-xl px-4 py-2 text-sm font-bold transition-colors',
-              isActive ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
+              isActive ? meta.chipClass : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
             )}
           >
-            {type === 'booth' ? 'Booth doanh nghiệp' : 'Hội thảo'}
+            {meta.title}
           </button>
         )
       })}
@@ -263,10 +248,11 @@ export default function SchoolAdminDashboard() {
   const [isExporting, setIsExporting] = useState(false)
   const [accountDialogOpen, setAccountDialogOpen] = useState(false)
   const [selectedWorkshop, setSelectedWorkshop] = useState<WorkshopManagementItem | null>(null)
+  const [selectedManagementType, setSelectedManagementType] = useState<'workshop' | 'totnghiep'>('workshop')
   const [isCreatingAccount, setIsCreatingAccount] = useState(false)
   const [businessAccountDialogOpen, setBusinessAccountDialogOpen] = useState(false)
   const [isCreatingBusinessAccount, setIsCreatingBusinessAccount] = useState(false)
-  const [createWorkshopDialogOpen, setCreateWorkshopDialogOpen] = useState(false)
+  const [createUnitType, setCreateUnitType] = useState<'workshop' | 'totnghiep' | null>(null)
   const [isCreatingWorkshop, setIsCreatingWorkshop] = useState(false)
 
   const { data: dashboardData, isFetching, refetch } = useQuery({
@@ -308,6 +294,16 @@ export default function SchoolAdminDashboard() {
   })
 
   const {
+    data: totnghieps = [],
+    isFetching: isFetchingTotnghieps,
+    refetch: refetchTotnghieps,
+  } = useQuery({
+    queryKey: ['school-admin', 'totnghieps'],
+    queryFn: getSchoolAdminTotnghieps,
+    staleTime: 60_000,
+  })
+
+  const {
     data: businessAccounts = [],
     isFetching: isFetchingBusinessAccounts,
     refetch: refetchBusinessAccounts,
@@ -326,22 +322,41 @@ export default function SchoolAdminDashboard() {
   }
 
   const allUnits = useMemo(
-    () =>
-      (boothsRaw.length ? boothsRaw : dashboardData?.booths ?? []).map((item) => ({
-        id: item.id,
-        name: item.displayName || item.name,
-        company:
-          typeof item.business === 'string'
-            ? item.business
-            : item.business?.name ?? item.name,
-        position: item.location ?? '',
-        visitorCount: 0,
-        staffName: '',
-        type: item.type,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })) as Booth[],
-    [boothsRaw, dashboardData?.booths],
+    () => {
+      const source = [
+        ...(dashboardData?.booths ?? []),
+        ...boothsRaw,
+        ...workshops,
+        ...totnghieps,
+      ]
+
+      return Array.from(
+        new Map(
+          source.map((item) => {
+            const business = 'business' in item ? item.business : null
+
+            return [
+              item.id,
+            {
+              id: item.id,
+              name: item.displayName || item.name,
+              company:
+                typeof business === 'string'
+                  ? business
+                  : business?.name ?? item.displayName ?? item.name,
+              position: item.location ?? '',
+              visitorCount: 0,
+              staffName: '',
+              type: item.type,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            ]
+          }),
+        ).values(),
+      ) as Booth[]
+    },
+    [boothsRaw, dashboardData?.booths, workshops, totnghieps],
   )
 
   const filteredUnits = useMemo(
@@ -446,38 +461,44 @@ export default function SchoolAdminDashboard() {
   }, [fallbackStats.dailyDistribution, filteredAnalyticsCheckins])
 
   const checkinTypeDistribution = useMemo(() => {
-    const init = {
-      booth: { type: 'booth' as UnitType, count: 0, uniqueStudents: 0, studentIds: new Set<string>() },
-      workshop: { type: 'workshop' as UnitType, count: 0, uniqueStudents: 0, studentIds: new Set<string>() },
-    }
+    const init = Object.fromEntries(
+      UNIT_TYPE_OPTIONS.map((type) => [
+        type,
+        { type, count: 0, uniqueStudents: 0, studentIds: new Set<string>() },
+      ]),
+    ) as Record<UnitType, { type: UnitType; count: number; uniqueStudents: number; studentIds: Set<string> }>
+
     analyticsCheckins.forEach((item) => {
       const type = item.booth?.type
-      if (type !== 'booth' && type !== 'workshop') return
+      if (!type || !(type in init)) return
       init[type].count += 1
       if (item.student?.id) {
         init[type].studentIds.add(item.student.id)
       }
     })
-    const hasData = init.booth.count > 0 || init.workshop.count > 0
+    const hasData = UNIT_TYPE_OPTIONS.some((type) => init[type].count > 0)
     if (!hasData) {
       return fallbackStats.checkinTypeDistribution ?? []
     }
-    return [
-      { type: 'booth' as UnitType, count: init.booth.count, uniqueStudents: init.booth.studentIds.size },
-      { type: 'workshop' as UnitType, count: init.workshop.count, uniqueStudents: init.workshop.studentIds.size },
-    ]
+    return UNIT_TYPE_OPTIONS.map((type) => ({
+      type,
+      count: init[type].count,
+      uniqueStudents: init[type].studentIds.size,
+    }))
   }, [analyticsCheckins, fallbackStats.checkinTypeDistribution])
 
-  const boothVsWorkshop = [
+  const typeComparisonData = [
     {
       name: 'Lượt check-in',
-      Booth: checkinTypeDistribution.find((item) => item.type === 'booth')?.count ?? 0,
-      Workshop: checkinTypeDistribution.find((item) => item.type === 'workshop')?.count ?? 0,
+      ...Object.fromEntries(
+        UNIT_TYPE_OPTIONS.map((type) => [getUnitMeta(type).shortTitle, checkinTypeDistribution.find((item) => item.type === type)?.count ?? 0]),
+      ),
     },
     {
       name: 'Sinh viên unique',
-      Booth: checkinTypeDistribution.find((item) => item.type === 'booth')?.uniqueStudents ?? 0,
-      Workshop: checkinTypeDistribution.find((item) => item.type === 'workshop')?.uniqueStudents ?? 0,
+      ...Object.fromEntries(
+        UNIT_TYPE_OPTIONS.map((type) => [getUnitMeta(type).shortTitle, checkinTypeDistribution.find((item) => item.type === type)?.uniqueStudents ?? 0]),
+      ),
     },
   ]
 
@@ -493,24 +514,34 @@ export default function SchoolAdminDashboard() {
     refetchStats()
     refetchBooths()
     refetchWorkshops()
+    refetchTotnghieps()
     refetchBusinessAccounts()
     refetchAnalyticsCheckins()
   }
 
-  const handleOpenWorkshopAccount = (workshop: WorkshopManagementItem) => {
+  const handleOpenWorkshopAccount = (workshop: WorkshopManagementItem, type: 'workshop' | 'totnghiep' = 'workshop') => {
     setSelectedWorkshop(workshop)
+    setSelectedManagementType(type)
     setAccountDialogOpen(true)
   }
 
   const handleCreateWorkshop = async (data: CreateWorkshopInput) => {
     setIsCreatingWorkshop(true)
     try {
-      await createSchoolAdminWorkshop(data)
-      toast.success('Tạo workshop mới thành công')
-      setCreateWorkshopDialogOpen(false)
-      refetchWorkshops()
+      if (createUnitType === 'totnghiep') {
+        await createSchoolAdminTotnghiep(data)
+        toast.success('Tạo khu tốt nghiệp mới thành công')
+        await refetchTotnghieps()
+      } else {
+        await createSchoolAdminWorkshop(data)
+        toast.success('Tạo workshop mới thành công')
+        await refetchWorkshops()
+      }
+      await refetch()
+      await refetchBooths()
+      setCreateUnitType(null)
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi tạo workshop')
+      toast.error(error?.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn vị')
     } finally {
       setIsCreatingWorkshop(false)
     }
@@ -522,19 +553,33 @@ export default function SchoolAdminDashboard() {
     setIsCreatingAccount(true)
     try {
       if (isUpdate) {
-        await updateSchoolAdminWorkshopAccount(selectedWorkshop.id, data)
-        toast.success('Đã cập nhật thông tin đăng nhập hội thảo')
+        if (selectedManagementType === 'totnghiep') {
+          await updateSchoolAdminTotnghiepAccount(selectedWorkshop.id, data)
+          toast.success('Đã cập nhật thông tin đăng nhập khu tốt nghiệp')
+        } else {
+          await updateSchoolAdminWorkshopAccount(selectedWorkshop.id, data)
+          toast.success('Đã cập nhật thông tin đăng nhập hội thảo')
+        }
       } else {
-        await createSchoolAdminWorkshopAccount(selectedWorkshop.id, data)
-        toast.success('Đã tạo tài khoản cho workshop')
+        if (selectedManagementType === 'totnghiep') {
+          await createSchoolAdminTotnghiepAccount(selectedWorkshop.id, data)
+          toast.success('Đã tạo tài khoản cho khu tốt nghiệp')
+        } else {
+          await createSchoolAdminWorkshopAccount(selectedWorkshop.id, data)
+          toast.success('Đã tạo tài khoản cho workshop')
+        }
       }
       setAccountDialogOpen(false)
       setSelectedWorkshop(null)
-      await refetchWorkshops()
+      if (selectedManagementType === 'totnghiep') {
+        await refetchTotnghieps()
+      } else {
+        await refetchWorkshops()
+      }
     } catch (error: any) {
       const message = error?.response?.data?.message || error?.message || ''
       if (message.includes('đã có tài khoản')) {
-        toast.error('Workshop này đã có tài khoản')
+        toast.error(selectedManagementType === 'totnghiep' ? 'Khu tốt nghiệp này đã có tài khoản' : 'Workshop này đã có tài khoản')
       } else if (message.includes('Email đã tồn tại') || message.includes('Email already') || message.includes('Email đã được sử dụng')) {
         toast.error('Email đã được sử dụng')
       } else {
@@ -650,6 +695,7 @@ export default function SchoolAdminDashboard() {
     { id: 'lookup', label: 'Tra cứu SV', icon: <SearchIcon className="h-5 w-5" /> },
     { id: 'booths', label: 'Danh sách đơn vị', icon: <Building2 className="h-5 w-5" /> },
     { id: 'workshop-management', label: 'Quản lý workshop', icon: <Building2 className="h-5 w-5" /> },
+    { id: 'totnghiep-management', label: 'Quản lý tốt nghiệp', icon: <Building2 className="h-5 w-5" /> },
     { id: 'business-accounts', label: 'Tài khoản doanh nghiệp', icon: <Building2 className="h-5 w-5" /> },
     { id: 'reward-settings', label: 'Mốc quà', icon: <Settings2 className="h-5 w-5" /> },
     { id: 'reward-students', label: 'SV theo mốc quà', icon: <Gift className="h-5 w-5" /> },
@@ -660,6 +706,8 @@ export default function SchoolAdminDashboard() {
   const selectedMeta = getUnitMeta(activeUnitType)
   const totalUnits = activeUnitType === 'workshop'
     ? overallStats.totalWorkshops ?? selectedTypeStats.totalUnits
+    : activeUnitType === 'totnghiep'
+    ? overallStats.totalTotnghieps ?? selectedTypeStats.totalUnits
     : overallStats.totalBooths ?? selectedTypeStats.totalUnits
   const avgScans = totalUnits ? selectedTypeStats.totalCheckins / totalUnits : 0
 
@@ -716,7 +764,7 @@ export default function SchoolAdminDashboard() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
                 <h3 className="text-xl font-bold text-slate-900 tracking-tight">Tổng quan</h3>
-                <p className="text-sm text-slate-400 italic">Tách riêng dữ liệu booth doanh nghiệp và workshop</p>
+                <p className="text-sm text-slate-400 italic">Tách riêng dữ liệu booth doanh nghiệp, workshop và tốt nghiệp</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
                 <Button
@@ -844,8 +892,31 @@ export default function SchoolAdminDashboard() {
             <WorkshopManagementTable
               items={workshops}
               isLoading={isFetchingWorkshops}
-              onManageAccount={handleOpenWorkshopAccount}
-              onCreateWorkshop={() => setCreateWorkshopDialogOpen(true)}
+              onManageAccount={(item) => handleOpenWorkshopAccount(item, 'workshop')}
+              onCreateWorkshop={() => setCreateUnitType('workshop')}
+            />
+          </div>
+        )
+
+      case 'totnghiep-management':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Quản lý tốt nghiệp</h3>
+                <p className="text-sm text-slate-400 italic">Tạo tài khoản đăng nhập và xem chi tiết từng khu tốt nghiệp</p>
+              </div>
+            </div>
+            <WorkshopManagementTable
+              items={totnghieps}
+              isLoading={isFetchingTotnghieps}
+              onManageAccount={(item) => handleOpenWorkshopAccount(item, 'totnghiep')}
+              onCreateWorkshop={() => setCreateUnitType('totnghiep')}
+              title="Quản lý tốt nghiệp"
+              emptyText="Chưa có khu tốt nghiệp nào trong hệ thống."
+              createButtonLabel="Tạo Khu Tốt Nghiệp"
+              detailHrefBase="/school-admin/totnghieps"
+              nameColumnLabel="Tên khu tốt nghiệp"
             />
           </div>
         )
@@ -871,7 +942,7 @@ export default function SchoolAdminDashboard() {
               yearDist={yearDist}
               selectedMeta={selectedMeta}
               selectedDistribution={selectedDistribution}
-              boothVsWorkshop={boothVsWorkshop}
+              typeComparisonData={typeComparisonData}
             />
           </div>
         )
@@ -908,6 +979,7 @@ export default function SchoolAdminDashboard() {
                   all: checkinTypeDistribution.reduce((sum, item) => sum + item.count, 0),
                   booth: checkinTypeDistribution.find((item) => item.type === 'booth')?.count ?? 0,
                   workshop: checkinTypeDistribution.find((item) => item.type === 'workshop')?.count ?? 0,
+                  totnghiep: checkinTypeDistribution.find((item) => item.type === 'totnghiep')?.count ?? 0,
                 }}
               />
             </div>
@@ -930,7 +1002,7 @@ export default function SchoolAdminDashboard() {
               <BoothsTable
                 booths={filteredUnits}
                 isLoading={isFetching}
-                title={activeUnitType === 'workshop' ? 'Danh sách hội thảo' : 'Danh sách booth doanh nghiệp'}
+                title={activeUnitType === 'workshop' ? 'Danh sách hội thảo' : activeUnitType === 'totnghiep' ? 'Danh sách khu tốt nghiệp' : 'Danh sách booth doanh nghiệp'}
               />
             </div>
           </div>
@@ -985,6 +1057,7 @@ export default function SchoolAdminDashboard() {
       <WorkshopAccountDialog
         open={accountDialogOpen}
         workshop={selectedWorkshop}
+        unitLabel={selectedManagementType === 'totnghiep' ? 'khu tốt nghiệp' : 'hội thảo'}
         isSubmitting={isCreatingAccount}
         onOpenChange={(open) => {
           setAccountDialogOpen(open)
@@ -999,10 +1072,22 @@ export default function SchoolAdminDashboard() {
         onSubmit={handleCreateBusinessAccount}
       />
       <CreateWorkshopDialog
-        open={createWorkshopDialogOpen}
+        open={createUnitType !== null}
         isSubmitting={isCreatingWorkshop}
-        onOpenChange={setCreateWorkshopDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreateUnitType(null)
+          }
+        }}
         onSubmit={handleCreateWorkshop}
+        unitLabel={createUnitType === 'totnghiep' ? 'khu tốt nghiệp' : 'workshop'}
+        title={createUnitType === 'totnghiep' ? 'Tạo khu tốt nghiệp mới' : 'Tạo workshop mới'}
+        description={createUnitType === 'totnghiep'
+          ? 'Thêm khu tốt nghiệp mới kèm tài khoản đăng nhập. Đơn vị sẽ sẵn sàng sử dụng ngay sau khi tạo.'
+          : 'Thêm workshop mới kèm tài khoản đăng nhập. Workshop sẽ sẵn sàng sử dụng ngay sau khi tạo.'}
+        submitLabel={createUnitType === 'totnghiep' ? 'Tạo khu tốt nghiệp' : 'Tạo workshop'}
+        namePlaceholder={createUnitType === 'totnghiep' ? 'VD: Tốt nghiệp 2026' : 'VD: Hội thảo CV Ấn tượng'}
+        emailPlaceholder={createUnitType === 'totnghiep' ? 'VD: totnghiep@jobfair' : 'VD: cv-workshop@jobfair'}
       />
     </DashboardLayout>
   )
@@ -1015,7 +1100,7 @@ function AnalyticsContent({
   yearDist,
   selectedMeta,
   selectedDistribution,
-  boothVsWorkshop,
+  typeComparisonData,
 }: {
   peakHoursData: Array<{ hour: number; count: number }>
   majorDist: Array<{ major: string; count: number }>
@@ -1023,7 +1108,7 @@ function AnalyticsContent({
   yearDist: Array<{ year: number; count: number }>
   selectedMeta: ReturnType<typeof getUnitMeta>
   selectedDistribution: { type: UnitType; count: number; uniqueStudents: number }
-  boothVsWorkshop: Array<{ name: string; Booth: number; Workshop: number }>
+  typeComparisonData: Array<Record<string, string | number>>
 }) {
   return (
     <div className="space-y-6">
@@ -1051,7 +1136,7 @@ function AnalyticsContent({
             ]}
             title={`Thống kê ${selectedMeta.title} — lượt check-in và sinh viên`}
             dataKeys={[
-              { key: 'Số lượng', color: selectedDistribution.type === 'workshop' ? '#F97316' : '#2563EB', name: 'Số lượng' },
+              { key: 'Số lượng', color: getUnitMeta(selectedDistribution.type).compareColor, name: 'Số lượng' },
             ]}
           />
         </div>
@@ -1060,9 +1145,24 @@ function AnalyticsContent({
             data={peakHoursData.map((h) => ({ name: `${h.hour}:00`, value: h.count }))}
             title="Phân bố sinh viên theo giờ"
             dataKey="value"
-            fill="#3B82F6"
+            fill={selectedMeta.compareColor}
           />
         </div>
+      </div>
+
+      <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
+        <ComparisonBarChart
+          data={typeComparisonData}
+          title="So sánh theo loại đơn vị"
+          dataKeys={UNIT_TYPE_OPTIONS.map((type) => {
+            const meta = getUnitMeta(type)
+            return {
+              key: meta.shortTitle,
+              color: meta.compareColor,
+              name: meta.shortTitle,
+            }
+          })}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">

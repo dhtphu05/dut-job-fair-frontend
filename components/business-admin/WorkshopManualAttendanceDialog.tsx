@@ -19,6 +19,7 @@ interface WorkshopManualAttendanceDialogProps {
   isSubmitting?: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: WorkshopAttendanceManualInput) => void
+  unitLabel?: string
 }
 
 const INITIAL_FORM: WorkshopAttendanceManualInput = {
@@ -36,6 +37,7 @@ export function WorkshopManualAttendanceDialog({
   isSubmitting = false,
   onOpenChange,
   onSubmit,
+  unitLabel = 'hội thảo',
 }: WorkshopManualAttendanceDialogProps) {
   const [form, setForm] = useState<WorkshopAttendanceManualInput>(INITIAL_FORM)
 
@@ -68,7 +70,7 @@ export function WorkshopManualAttendanceDialog({
         <DialogHeader>
           <DialogTitle>Thêm thủ công sinh viên điểm danh</DialogTitle>
           <DialogDescription>
-            Vui lòng nhập thông tin sinh viên để thêm vào danh sách điểm danh hội thảo.
+            Vui lòng nhập thông tin sinh viên để thêm vào danh sách điểm danh {unitLabel}.
           </DialogDescription>
         </DialogHeader>
 
