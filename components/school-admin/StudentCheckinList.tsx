@@ -5,8 +5,9 @@ import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Download, Search, Filter, CheckCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Download, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { UNIT_TYPE_OPTIONS, getUnitMeta } from '@/lib/unit-meta'
 import { cn, formatVNDateTime } from '@/lib/utils'
 import {
   Table,
@@ -64,20 +65,22 @@ interface StudentCheckinListProps {
     all: number
     booth: number
     workshop: number
+    totnghiep: number
   }
 }
 
 function typeBadge(type?: UnitType) {
-  if (type === 'workshop') {
+  if (!type) {
     return {
-      label: 'Hội thảo',
-      className: 'bg-orange-100 text-orange-700 border-transparent',
+      label: 'Booth',
+      className: 'bg-blue-100 text-blue-700 border-transparent',
     }
   }
 
+  const meta = getUnitMeta(type)
   return {
-    label: 'Booth',
-    className: 'bg-blue-100 text-blue-700 border-transparent',
+    label: meta.shortTitle,
+    className: meta.badgeClass,
   }
 }
 
@@ -202,7 +205,7 @@ export function StudentCheckinList({ defaultTypeFilter = 'all', totalsByType }: 
 
         {/* Type filter */}
         <div className="flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
-          {(['all', 'booth', 'workshop'] as const).map((t) => (
+          {(['all', ...UNIT_TYPE_OPTIONS] as const).map((t) => (
             <button
               key={t}
               type="button"
@@ -214,7 +217,7 @@ export function StudentCheckinList({ defaultTypeFilter = 'all', totalsByType }: 
                   : 'text-slate-500 hover:text-slate-800',
               )}
             >
-              {t === 'all' ? 'Tất cả loại' : t === 'booth' ? 'Booth DN' : 'Hội thảo'}
+              {t === 'all' ? 'Tất cả loại' : getUnitMeta(t).shortTitle}
             </button>
           ))}
         </div>

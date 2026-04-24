@@ -19,7 +19,7 @@ function getDownloadFilename(contentDisposition: string | undefined, fallback: s
   return basicMatch?.[1] ?? fallback
 }
 
-async function downloadWorkshopFile(url: string, fallbackFilename: string) {
+async function downloadTotnghiepFile(url: string, fallbackFilename: string) {
   const response = await axiosInstance.get(url, {
     responseType: 'blob',
   })
@@ -41,33 +41,34 @@ async function downloadWorkshopFile(url: string, fallbackFilename: string) {
 function normalizeAttendanceItems(items: WorkshopAttendanceItem[] | undefined): WorkshopAttendanceItem[] {
   return (items ?? []).map((item) => ({
     ...item,
-    unitName: item.unitName || item.workshopName || item.totnghiepName || '',
+    unitName: item.unitName || item.totnghiepName || item.workshopName || '',
   }))
 }
 
-export async function getWorkshopAttendance(): Promise<WorkshopAttendanceResponse> {
-  const response = await axiosInstance.get('/api/business-admin/workshop-attendance')
-  const data = response.data?.data as WorkshopAttendanceResponse | undefined
+export async function getTotnghiepAttendance(): Promise<WorkshopAttendanceResponse> {
+  const response = await axiosInstance.get('/api/business-admin/totnghiep-attendance')
+  const raw = response.data?.data
 
-  if (!data) {
-    throw new Error('Không nhận được dữ liệu điểm danh workshop')
+  if (!raw) {
+    throw new Error('Không nhận được dữ liệu điểm danh tốt nghiệp')
   }
 
   return {
-    ...data,
-    items: normalizeAttendanceItems(data.items),
+    workshop: raw.totnghiep,
+    total: raw.total ?? 0,
+    items: normalizeAttendanceItems(raw.items),
   }
 }
 
-export async function downloadWorkshopAttendanceCsv() {
-  await downloadWorkshopFile(
-    '/api/business-admin/workshop-attendance/export',
-    `workshop-attendance-${new Date().toISOString().split('T')[0]}.csv`,
+export async function downloadTotnghiepAttendanceCsv() {
+  await downloadTotnghiepFile(
+    '/api/business-admin/totnghiep-attendance/export',
+    `totnghiep-attendance-${new Date().toISOString().split('T')[0]}.csv`,
   )
 }
 
-export async function downloadWorkshopAttendanceExcel() {
-  const response = await axiosInstance.get('/api/business-admin/workshop-attendance/export-data')
+export async function downloadTotnghiepAttendanceExcel() {
+  const response = await axiosInstance.get('/api/business-admin/totnghiep-attendance/export-data')
   const payload = response.data?.data as WorkshopAttendanceExportPayload | undefined
 
   if (!payload) {
@@ -91,21 +92,21 @@ export async function downloadWorkshopAttendanceExcel() {
   XLSX.utils.book_append_sheet(
     workbook,
     worksheet,
-    payload.sheetName || 'Điểm danh hội thảo',
+    payload.sheetName || 'Điểm danh tốt nghiệp',
   )
 
   const normalizedName = payload.fileName?.replace(/\.xls$/i, '.xlsx')
-    || `workshop-attendance-${new Date().toISOString().split('T')[0]}.xlsx`
+    || `totnghiep-attendance-${new Date().toISOString().split('T')[0]}.xlsx`
 
   XLSX.writeFile(workbook, normalizedName)
 }
 
-export async function addWorkshopAttendanceManual(data: WorkshopAttendanceManualInput) {
-  const response = await axiosInstance.post('/api/business-admin/workshop-attendance/manual', data)
+export async function addTotnghiepAttendanceManual(data: WorkshopAttendanceManualInput) {
+  const response = await axiosInstance.post('/api/business-admin/totnghiep-attendance/manual', data)
   return response.data?.data
 }
 
-export async function deleteWorkshopAttendance(studentCode: string) {
-  const response = await axiosInstance.delete(`/api/business-admin/workshop-attendance/${studentCode}`)
+export async function deleteTotnghiepAttendance(studentCode: string) {
+  const response = await axiosInstance.delete(`/api/business-admin/totnghiep-attendance/${studentCode}`)
   return response.data?.data
 }

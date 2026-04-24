@@ -8,6 +8,7 @@ interface WorkshopExportActionsProps {
   onOpenManualAdd?: () => void
   onDownloadCsv: () => void
   onDownloadExcel: () => void
+  manualLabel?: string
 }
 
 export function WorkshopExportActions({
@@ -15,6 +16,7 @@ export function WorkshopExportActions({
   onOpenManualAdd,
   onDownloadCsv,
   onDownloadExcel,
+  manualLabel = 'Thêm thủ công',
 }: WorkshopExportActionsProps) {
   return (
     <div className="flex flex-wrap gap-3">
@@ -42,7 +44,7 @@ export function WorkshopExportActions({
           disabled={isPending}
           className="rounded-xl px-4 font-bold"
         >
-          <span>Thêm thủ công</span>
+          <span>{manualLabel}</span>
         </Button>
       )}
     </div>

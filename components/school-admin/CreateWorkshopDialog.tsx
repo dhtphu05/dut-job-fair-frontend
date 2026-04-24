@@ -19,6 +19,12 @@ interface CreateWorkshopDialogProps {
   isSubmitting?: boolean
   onOpenChange: (open: boolean) => void
   onSubmit: (data: CreateWorkshopInput) => void
+  unitLabel?: string
+  title?: string
+  description?: string
+  submitLabel?: string
+  namePlaceholder?: string
+  emailPlaceholder?: string
 }
 
 export function CreateWorkshopDialog({
@@ -26,6 +32,12 @@ export function CreateWorkshopDialog({
   isSubmitting = false,
   onOpenChange,
   onSubmit,
+  unitLabel = 'workshop',
+  title = 'Tạo workshop mới',
+  description = 'Thêm workshop mới kèm tài khoản đăng nhập. Workshop sẽ sẵn sàng sử dụng ngay sau khi tạo.',
+  submitLabel = 'Tạo workshop',
+  namePlaceholder = 'VD: Hội thảo CV Ấn tượng',
+  emailPlaceholder = 'VD: cv-workshop@jobfair',
 }: CreateWorkshopDialogProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -53,20 +65,18 @@ export function CreateWorkshopDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Tạo workshop mới</DialogTitle>
-          <DialogDescription>
-            Thêm workshop mới kèm tài khoản đăng nhập. Workshop sẽ sẵn sàng sử dụng ngay sau khi tạo.
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="create-workshop-name">Tên workshop <span className="text-red-500">*</span></Label>
+            <Label htmlFor="create-workshop-name">Tên {unitLabel} <span className="text-red-500">*</span></Label>
             <Input
               id="create-workshop-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="VD: Hội thảo CV Ấn tượng"
+              placeholder={namePlaceholder}
               required
             />
           </div>
@@ -77,7 +87,7 @@ export function CreateWorkshopDialog({
               id="create-workshop-email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="VD: cv-workshop@jobfair"
+              placeholder={emailPlaceholder}
               required
             />
           </div>
@@ -100,7 +110,7 @@ export function CreateWorkshopDialog({
               Huỷ
             </Button>
             <Button type="submit" disabled={isSubmitting || !name.trim() || !email.trim() || password.length < 6}>
-              {isSubmitting ? 'Đang tạo...' : 'Tạo workshop'}
+              {isSubmitting ? 'Đang tạo...' : submitLabel}
             </Button>
           </DialogFooter>
         </form>

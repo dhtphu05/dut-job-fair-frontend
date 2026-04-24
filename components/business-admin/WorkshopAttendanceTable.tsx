@@ -30,6 +30,10 @@ interface WorkshopAttendanceTableProps {
   isLoading?: boolean
   isDeleting?: boolean
   onDelete?: (studentCode: string) => void
+  title?: string
+  unitColumnLabel?: string
+  unitLabel?: string
+  emptyDescription?: string
 }
 
 export function WorkshopAttendanceTable({
@@ -37,6 +41,10 @@ export function WorkshopAttendanceTable({
   isLoading = false,
   isDeleting = false,
   onDelete,
+  title = 'Danh sách điểm danh hội thảo',
+  unitColumnLabel = 'Tên hội thảo',
+  unitLabel = 'hội thảo',
+  emptyDescription = 'Danh sách sẽ tự cập nhật khi sinh viên check-in vào hội thảo này.',
 }: WorkshopAttendanceTableProps) {
   const [selectedItem, setSelectedItem] = useState<WorkshopAttendanceItem | null>(null)
 
@@ -61,7 +69,7 @@ export function WorkshopAttendanceTable({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-slate-900">
             <Users className="h-5 w-5" />
-            Danh sách điểm danh hội thảo
+            {title}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -78,7 +86,7 @@ export function WorkshopAttendanceTable({
               </div>
               <h3 className="text-lg font-bold text-slate-900">Chưa có sinh viên điểm danh</h3>
               <p className="mt-2 text-sm text-slate-500">
-                Danh sách sẽ tự cập nhật khi sinh viên check-in vào hội thảo này.
+                {emptyDescription}
               </p>
             </div>
           ) : (
@@ -88,7 +96,7 @@ export function WorkshopAttendanceTable({
                   <TableHeader className="sticky top-0 z-10 bg-slate-50">
                     <TableRow>
                       <TableHead>STT</TableHead>
-                      <TableHead>Tên hội thảo</TableHead>
+                      <TableHead>{unitColumnLabel}</TableHead>
                       <TableHead>Họ và tên</TableHead>
                       <TableHead>MSSV</TableHead>
                       <TableHead>Lớp</TableHead>
@@ -103,7 +111,7 @@ export function WorkshopAttendanceTable({
                       <TableRow key={`${item.studentCode}-${item.stt}`} className="hover:bg-slate-50/80">
                         <TableCell className="font-semibold text-slate-500">{index + 1}</TableCell>
                         <TableCell className="max-w-[260px] whitespace-normal font-medium text-slate-700">
-                          {item.workshopName || '—'}
+                          {item.unitName || item.workshopName || item.totnghiepName || '—'}
                         </TableCell>
                         <TableCell className="font-semibold text-slate-900">{item.fullName}</TableCell>
                         <TableCell className="font-mono text-sm text-blue-600">{item.studentCode}</TableCell>
@@ -142,14 +150,16 @@ export function WorkshopAttendanceTable({
             <AlertDialogDescription>
               {selectedItem ? (
                 <>
-                  Bạn có chắc muốn xoá sinh viên này khỏi danh sách điểm danh hội thảo không?
+                  Bạn có chắc muốn xoá sinh viên này khỏi danh sách điểm danh {unitLabel} không?
+                  <br />
+                  Ghi nhận này sẽ bị xoá khỏi danh sách điểm danh {unitLabel}.
                   <br />
                   <br />
                   Họ và tên: <strong>{selectedItem.fullName}</strong>
                   <br />
                   MSSV: <strong>{selectedItem.studentCode}</strong>
                   <br />
-                  Hội thảo: <strong>{selectedItem.workshopName || '—'}</strong>
+                  {unitColumnLabel}: <strong>{selectedItem.unitName || selectedItem.workshopName || selectedItem.totnghiepName || '—'}</strong>
                 </>
               ) : null}
             </AlertDialogDescription>

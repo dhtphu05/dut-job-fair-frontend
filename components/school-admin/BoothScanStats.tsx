@@ -15,6 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { customAxiosInstance } from '@/lib/axios-instance'
+import { getUnitMeta } from '@/lib/unit-meta'
 import { BarChart3, Users, QrCode, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { UnitType } from '@/lib/types'
@@ -39,16 +40,17 @@ async function fetchBoothStats(): Promise<BoothStat[]> {
 }
 
 function typeBadge(type?: UnitType) {
-  if (type === 'workshop') {
+  if (!type) {
     return {
-      label: 'Hội thảo',
-      className: 'bg-orange-100 text-orange-700',
+      label: 'Booth',
+      className: 'bg-blue-100 text-blue-700',
     }
   }
 
+  const meta = getUnitMeta(type)
   return {
-    label: 'Booth',
-    className: 'bg-blue-100 text-blue-700',
+    label: meta.shortTitle,
+    className: meta.badgeClass,
   }
 }
 
@@ -187,7 +189,7 @@ export function BoothScanStats({ filterType = 'all' }: BoothScanStatsProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Chi tiết từng gian hàng
+            Chi tiết từng đơn vị
           </CardTitle>
         </CardHeader>
         <CardContent>
