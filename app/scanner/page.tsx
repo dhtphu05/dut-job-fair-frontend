@@ -16,6 +16,7 @@ import {
   useScannerControllerGetRecentScans,
   useScannerControllerGetScans,
   getScannerControllerGetRecentScansQueryKey,
+  getScannerControllerGetScansQueryKey,
 } from '@/lib/api/generated/scanner/scanner'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -24,6 +25,8 @@ type DutQrPayload = {
   ho_ten: string
   ma_so_sinh_vien: string
   lop: string
+  khoa?: string
+  dot_tot_nghiep?: string
   email?: string
   phone?: string
 }
@@ -48,10 +51,14 @@ function tryParseDutQrPayload(rawValue: string): DutQrPayload | null {
         parsed &&
         typeof parsed === 'object' &&
         typeof parsed.ho_ten === 'string' &&
-        typeof parsed.ma_so_sinh_vien === 'string' &&
-        typeof parsed.lop === 'string'
+        typeof parsed.ma_so_sinh_vien === 'string'
       ) {
-        return parsed as DutQrPayload
+        return {
+          ...parsed,
+          // QR sinh từ danh sách cũ có thể không có lớp; backend vẫn có thể
+          // ghi nhận check-in bằng MSSV và họ tên.
+          lop: typeof parsed.lop === 'string' ? parsed.lop : '',
+        } as DutQrPayload
       }
     } catch {
       // Not a JSON QR payload, continue to fallback.
@@ -59,6 +66,13 @@ function tryParseDutQrPayload(rawValue: string): DutQrPayload | null {
   }
 
   return null
+}
+
+// customAxiosInstance unwraps AxiosResponse, but the backend's global
+// TransformInterceptor still wraps every successful API body as `{ data, status }`.
+function getBackendData<T>(response: unknown): T | undefined {
+  if (!response || typeof response !== 'object') return undefined
+  return (response as { data?: T }).data
 }
 
 export default function ScannerPage() {
@@ -98,7 +112,7 @@ export default function ScannerPage() {
   // Initialize visitorCount from backend total (once on load)
   useEffect(() => {
     if (!countInitialized.current && scansTotalData) {
-      const total = (scansTotalData as any)?.data?.total
+      const total = getBackendData<{ total?: number }>(scansTotalData)?.total
       if (total !== undefined) {
         setVisitorCount(total)
         countInitialized.current = true
@@ -107,7 +121,7 @@ export default function ScannerPage() {
   }, [scansTotalData])
 
   // Map backend response to ScanRecord shape (checkInTime → timestamp)
-  const rawScans: any[] = (recentScansData as any)?.data || []
+  const rawScans: any[] = getBackendData<any[]>(recentScansData) ?? []
   const recentScans: ScanRecord[] = rawScans.map((item: any) => ({
     id: item.id,
     visitorId: item.visitor?.id || '',
@@ -184,8 +198,12 @@ export default function ScannerPage() {
             }
           })
 
-      const result = (response as any).data
+      const result = getBackendData<any>(response)
       console.log('[handleScan] API result:', result)
+
+      if (!result || typeof result !== 'object') {
+        throw new Error('Máy chủ trả về kết quả quét không hợp lệ')
+      }
 
       if (result.success || result.status === 'duplicate') {
         // Play success/duplicate sound
@@ -211,6 +229,9 @@ export default function ScannerPage() {
           queryClient.invalidateQueries({
             queryKey: getScannerControllerGetRecentScansQueryKey({ boothId })
           })
+          queryClient.invalidateQueries({
+            queryKey: getScannerControllerGetScansQueryKey({ boothId })
+          })
         }
 
         setScanResult({
@@ -223,10 +244,13 @@ export default function ScannerPage() {
       }
     } catch (error: any) {
       console.error('Scan error:', error)
+      const apiMessage = error?.response?.data?.error?.message ?? error?.response?.data?.message
       setScanResult({
         status: 'error',
         visitor: null,
-        message: error?.response?.data?.message || error.message || 'Có lỗi xảy ra khi xử lý quét',
+        message: Array.isArray(apiMessage)
+          ? apiMessage.join('. ')
+          : apiMessage || error.message || 'Có lỗi xảy ra khi xử lý quét',
       })
     } finally {
       setModalOpen(true)

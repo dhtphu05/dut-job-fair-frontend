@@ -98,10 +98,19 @@ export default function LoginPage() {
           ? '/school-admin'
           : roleLower === 'business_admin'
           ? '/business-admin'
+          : roleLower === 'booth_staff'
+          ? '/scanner'
           : role === 'school_admin' ? '/school-admin' : '/business-admin'
 
       saveAuthAndRedirect(authDto, target)
     } catch (err: any) {
+      if (!err?.response && (err?.message === 'Network Error' || err?.code === 'ERR_NETWORK' || !err?.status)) {
+        const netMsg = 'Không thể kết nối đến Backend (hãy kiểm tra xem start-backend.bat đã được bật chưa).'
+        setErrors({ email: netMsg, password: netMsg })
+        toast.error(netMsg)
+        return
+      }
+
       const message: string =
         err?.response?.data?.message || err?.message || 'Email hoặc mật khẩu không chính xác'
 
@@ -112,7 +121,6 @@ export default function LoginPage() {
       } else if (lowerMsg.includes('password') || lowerMsg.includes('mật khẩu')) {
         setErrors({ password: message })
       } else {
-        // Generic auth failure — highlight both fields
         setErrors({
           email: 'Email hoặc mật khẩu không chính xác.',
           password: 'Email hoặc mật khẩu không chính xác.',

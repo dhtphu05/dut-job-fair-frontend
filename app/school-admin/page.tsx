@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import axiosInstance from '@/lib/axios-instance'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { BoothsTable } from '@/components/school-admin/BoothsTable'
@@ -57,6 +58,7 @@ import { cn, formatVNDateTime } from '@/lib/utils'
 import { createSchoolAdminWorkshop, createSchoolAdminWorkshopAccount, getSchoolAdminWorkshops, updateSchoolAdminWorkshopAccount } from '@/lib/school-admin-workshops'
 import { createSchoolAdminTotnghiep, createSchoolAdminTotnghiepAccount, getSchoolAdminTotnghieps, updateSchoolAdminTotnghiepAccount } from '@/lib/school-admin-totnghieps'
 import { UNIT_TYPE_OPTIONS, getUnitMeta } from '@/lib/unit-meta'
+import { getSchoolAdminGraduationBatches, type GraduationBatch } from '@/lib/graduation-batches'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 
@@ -140,13 +142,17 @@ type AnalyticsCheckinsResponse = {
   items?: AnalyticsCheckinItem[]
 }
 
-async function fetchDashboard(): Promise<DashboardResponse> {
-  const res = await customAxiosInstance<any>('/api/school-admin/dashboard', { method: 'GET' })
+function graduationBatchQuery(dotTotNghiep?: string) {
+  return dotTotNghiep ? `?dotTotNghiep=${encodeURIComponent(dotTotNghiep)}` : ''
+}
+
+async function fetchDashboard(dotTotNghiep?: string): Promise<DashboardResponse> {
+  const res = await customAxiosInstance<any>(`/api/school-admin/dashboard${graduationBatchQuery(dotTotNghiep)}`, { method: 'GET' })
   return (res as any).data ?? {}
 }
 
-async function fetchStats(): Promise<StatsResponse> {
-  const res = await customAxiosInstance<any>('/api/school-admin/stats', { method: 'GET' })
+async function fetchStats(dotTotNghiep?: string): Promise<StatsResponse> {
+  const res = await customAxiosInstance<any>(`/api/school-admin/stats${graduationBatchQuery(dotTotNghiep)}`, { method: 'GET' })
   return (res as any).data ?? {}
 }
 
@@ -155,8 +161,10 @@ async function fetchBoothsRaw(): Promise<BoothApiItem[]> {
   return ((res as any).data ?? []) as BoothApiItem[]
 }
 
-async function fetchAnalyticsCheckins(): Promise<AnalyticsCheckinItem[]> {
-  const res = await customAxiosInstance<any>('/api/school-admin/checkins?page=1&pageSize=99999', { method: 'GET' })
+async function fetchAnalyticsCheckins(dotTotNghiep?: string): Promise<AnalyticsCheckinItem[]> {
+  const query = new URLSearchParams({ page: '1', pageSize: '99999' })
+  if (dotTotNghiep) query.set('dotTotNghiep', dotTotNghiep)
+  const res = await customAxiosInstance<any>(`/api/school-admin/checkins?${query.toString()}`, { method: 'GET' })
   const data = (res as any).data as AnalyticsCheckinsResponse | undefined
   return data?.items ?? []
 }
@@ -193,6 +201,35 @@ function UnitToggle({
           </button>
         )
       })}
+    </div>
+  )
+}
+
+function GraduationBatchSelect({
+  value,
+  batches,
+  onChange,
+}: {
+  value: string
+  batches: GraduationBatch[]
+  onChange: (value: string) => void
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Đợt tốt nghiệp</span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-8 min-w-52 border-0 bg-transparent font-semibold shadow-none focus:ring-0">
+          <SelectValue placeholder="Chọn đợt" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Tất cả đợt</SelectItem>
+          {batches.map((batch) => (
+            <SelectItem key={batch.code} value={batch.code}>
+              {batch.label} · {batch.totalCheckins} lượt quét
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   )
 }
@@ -254,16 +291,24 @@ export default function SchoolAdminDashboard() {
   const [isCreatingBusinessAccount, setIsCreatingBusinessAccount] = useState(false)
   const [createUnitType, setCreateUnitType] = useState<'workshop' | 'totnghiep' | null>(null)
   const [isCreatingWorkshop, setIsCreatingWorkshop] = useState(false)
+  const [selectedGraduationBatch, setSelectedGraduationBatch] = useState('all')
+  const dotTotNghiep = selectedGraduationBatch === 'all' ? undefined : selectedGraduationBatch
+
+  const { data: graduationBatches = [] } = useQuery({
+    queryKey: ['school-admin', 'graduation-batches'],
+    queryFn: getSchoolAdminGraduationBatches,
+    staleTime: 60_000,
+  })
 
   const { data: dashboardData, isFetching, refetch } = useQuery({
-    queryKey: ['school-admin', 'dashboard'],
-    queryFn: fetchDashboard,
+    queryKey: ['school-admin', 'dashboard', dotTotNghiep ?? 'all'],
+    queryFn: () => fetchDashboard(dotTotNghiep),
     refetchInterval: 30_000,
   })
 
   const { data: statsData, refetch: refetchStats } = useQuery({
-    queryKey: ['school-admin', 'stats'],
-    queryFn: fetchStats,
+    queryKey: ['school-admin', 'stats', dotTotNghiep ?? 'all'],
+    queryFn: () => fetchStats(dotTotNghiep),
     refetchInterval: 60_000,
   })
 
@@ -271,8 +316,8 @@ export default function SchoolAdminDashboard() {
     data: analyticsCheckins = [],
     refetch: refetchAnalyticsCheckins,
   } = useQuery({
-    queryKey: ['school-admin', 'analytics-checkins'],
-    queryFn: fetchAnalyticsCheckins,
+    queryKey: ['school-admin', 'analytics-checkins', dotTotNghiep ?? 'all'],
+    queryFn: () => fetchAnalyticsCheckins(dotTotNghiep),
     refetchInterval: 60_000,
     staleTime: 30_000,
   })
@@ -659,7 +704,10 @@ export default function SchoolAdminDashboard() {
     if (isExporting) return
     setIsExporting(true)
     try {
-      const boothStatsRes = await customAxiosInstance<any>('/api/school-admin/booth-stats', { method: 'GET' })
+      const boothStatsRes = await customAxiosInstance<any>(
+        `/api/school-admin/booth-stats${graduationBatchQuery(dotTotNghiep)}`,
+        { method: 'GET' },
+      )
       const allBoothStats = (boothStatsRes as any).data ?? []
       exportBoothStatsExcel(allBoothStats)
       toast.success('Thống kê gian hàng đã được tải')
@@ -675,7 +723,12 @@ export default function SchoolAdminDashboard() {
     if (isExporting) return
     setIsExporting(true)
     try {
-      const checkinsRes = await customAxiosInstance<any>('/api/school-admin/checkins?page=1&pageSize=99999', { method: 'GET' })
+      const query = new URLSearchParams({ page: '1', pageSize: '99999' })
+      if (dotTotNghiep) query.set('dotTotNghiep', dotTotNghiep)
+      const checkinsRes = await customAxiosInstance<any>(
+        `/api/school-admin/checkins?${query.toString()}`,
+        { method: 'GET' },
+      )
       const allCheckins = (checkinsRes as any).data?.items ?? []
       exportCheckinsExcel(allCheckins)
       toast.success('Lịch sử điểm danh đã được tải')
@@ -759,7 +812,14 @@ export default function SchoolAdminDashboard() {
         return (
           <div className="space-y-8">
             {/* Tab toggle — top, same as other sections */}
-            <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+            <div className="flex flex-wrap items-center gap-3">
+              <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+              <GraduationBatchSelect
+                value={selectedGraduationBatch}
+                batches={graduationBatches}
+                onChange={setSelectedGraduationBatch}
+              />
+            </div>
 
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
@@ -864,7 +924,14 @@ export default function SchoolAdminDashboard() {
         return (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+              <div className="flex flex-wrap items-center gap-3">
+                <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+                <GraduationBatchSelect
+                  value={selectedGraduationBatch}
+                  batches={graduationBatches}
+                  onChange={setSelectedGraduationBatch}
+                />
+              </div>
               <Button
                 onClick={handleExportBoothStats}
                 disabled={isExporting}
@@ -875,7 +942,7 @@ export default function SchoolAdminDashboard() {
               </Button>
             </div>
             <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
-              <BoothScanStats filterType={activeUnitType} />
+              <BoothScanStats filterType={activeUnitType} dotTotNghiep={dotTotNghiep} />
             </div>
           </div>
         )
@@ -925,7 +992,14 @@ export default function SchoolAdminDashboard() {
         return (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+              <div className="flex flex-wrap items-center gap-3">
+                <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+                <GraduationBatchSelect
+                  value={selectedGraduationBatch}
+                  batches={graduationBatches}
+                  onChange={setSelectedGraduationBatch}
+                />
+              </div>
               <Button
                 onClick={handleExportAnalytics}
                 disabled={isExporting}
@@ -951,7 +1025,14 @@ export default function SchoolAdminDashboard() {
         return (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+              <div className="flex flex-wrap items-center gap-3">
+                <UnitToggle activeUnitType={activeUnitType} onChange={setActiveUnitType} />
+                <GraduationBatchSelect
+                  value={selectedGraduationBatch}
+                  batches={graduationBatches}
+                  onChange={setSelectedGraduationBatch}
+                />
+              </div>
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Button
                   variant="outline"
@@ -975,6 +1056,7 @@ export default function SchoolAdminDashboard() {
             <div className="bg-white rounded-[28px] border border-slate-100/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6">
               <StudentCheckinList
                 defaultTypeFilter={activeUnitType}
+                dotTotNghiep={dotTotNghiep}
                 totalsByType={{
                   all: checkinTypeDistribution.reduce((sum, item) => sum + item.count, 0),
                   booth: checkinTypeDistribution.find((item) => item.type === 'booth')?.count ?? 0,

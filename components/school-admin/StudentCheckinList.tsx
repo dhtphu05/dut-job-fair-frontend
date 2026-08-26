@@ -33,6 +33,7 @@ interface CheckinItem {
     department: string | null
     className: string | null
     year: number | null
+    graduationBatch?: string | null
   }
   booth: {
     id: string
@@ -52,8 +53,11 @@ interface CheckinsResponse {
 
 const PAGE_SIZE = 30
 
-async function fetchCheckins(page: number): Promise<CheckinsResponse> {
-  const res = await customAxiosInstance<any>(`/api/school-admin/checkins?page=${page}&pageSize=${PAGE_SIZE}`, {
+async function fetchCheckins(page: number, dotTotNghiep?: string): Promise<CheckinsResponse> {
+  const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) })
+  if (dotTotNghiep) params.set('dotTotNghiep', dotTotNghiep)
+
+  const res = await customAxiosInstance<any>(`/api/school-admin/checkins?${params.toString()}`, {
     method: 'GET',
   })
   return (res as any).data
@@ -61,6 +65,7 @@ async function fetchCheckins(page: number): Promise<CheckinsResponse> {
 
 interface StudentCheckinListProps {
   defaultTypeFilter?: UnitType | 'all'
+  dotTotNghiep?: string
   totalsByType?: {
     all: number
     booth: number
@@ -84,7 +89,7 @@ function typeBadge(type?: UnitType) {
   }
 }
 
-export function StudentCheckinList({ defaultTypeFilter = 'all', totalsByType }: StudentCheckinListProps) {
+export function StudentCheckinList({ defaultTypeFilter = 'all', dotTotNghiep, totalsByType }: StudentCheckinListProps) {
   const [page, setPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterDept, setFilterDept] = useState<string | null>(null)
@@ -94,9 +99,13 @@ export function StudentCheckinList({ defaultTypeFilter = 'all', totalsByType }: 
     setFilterType(defaultTypeFilter)
   }, [defaultTypeFilter])
 
+  useEffect(() => {
+    setPage(1)
+  }, [dotTotNghiep])
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['school-admin', 'checkins', page],
-    queryFn: () => fetchCheckins(page),
+    queryKey: ['school-admin', 'checkins', page, dotTotNghiep ?? 'all'],
+    queryFn: () => fetchCheckins(page, dotTotNghiep),
     refetchInterval: 30_000,
   })
 

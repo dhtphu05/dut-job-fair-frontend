@@ -19,8 +19,7 @@ import {
   BookOpen,
   Calendar,
 } from 'lucide-react'
-import { Visitor } from '@/lib/types'
-import { ScanStatus } from '@/lib/constants'
+import type { ScanStatus, Visitor } from '@/lib/types'
 
 interface ScanResultModalProps {
   isOpen: boolean
@@ -173,7 +172,7 @@ export function ScanResultModal({
           <Alert className="border-yellow-300 bg-yellow-50 text-yellow-800">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
             <AlertDescription>
-              Sinh viên này đã check-in tại gian hàng trong vòng 5 phút gần đây.
+              Sinh viên này đã check-in tại gian hàng này trước đó.
             </AlertDescription>
           </Alert>
         )}

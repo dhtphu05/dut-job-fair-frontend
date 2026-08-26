@@ -1,38 +1,73 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# ── Dependencies ───────────────────────────────────────────────────────────────
 /node_modules
 /.pnp
 .pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
 .yarn/install-state.gz
 
-# testing
+# ── Testing ────────────────────────────────────────────────────────────────────
 /coverage
+.nyc_output/
 
-# next.js
+# ── Next.js ────────────────────────────────────────────────────────────────────
 /.next/
 /out/
 
-# production
+# ── Production build ────────────────────────────────────────────────────────────
 /build
+/dist
 
-# misc
+# ── Editors ────────────────────────────────────────────────────────────────────
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ── Misc ───────────────────────────────────────────────────────────────────────
 .DS_Store
+.AppleDouble
+.LSOverride
 *.pem
 
-# debug
+# ── Windows ────────────────────────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Debug / Logs ────────────────────────────────────────────────────────────────
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.log
+logs/
 
-# local env files
-.env*.local
+# ── Environment variables (NEVER commit these) ─────────────────────────────────
 .env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+.env*
 
-# vercel
+# ── Vercel ─────────────────────────────────────────────────────────────────────
 .vercel
 
-# typescript
+# ── TypeScript ─────────────────────────────────────────────────────────────────
 *.tsbuildinfo
 next-env.d.ts
+
+# ── Cache ──────────────────────────────────────────────────────────────────────
+.cache/
+.temp/
+tmp/
+
+# ── Orval generated (nếu không muốn commit) ────────────────────────────────────
+# Uncomment dòng dưới nếu bạn không muốn commit file được tạo tự động bởi Orval
+# src/api/generated/

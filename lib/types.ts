@@ -36,6 +36,7 @@ export interface Visitor {
   year: number
   className?: string | null
   department?: string | null
+  graduationBatch?: string | null
   createdAt: string
   updatedAt: string
 }

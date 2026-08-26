@@ -32,8 +32,9 @@ interface BoothStat {
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6']
 
-async function fetchBoothStats(): Promise<BoothStat[]> {
-  const res = await customAxiosInstance<{ data: BoothStat[] }>('/api/school-admin/booth-stats', {
+async function fetchBoothStats(dotTotNghiep?: string): Promise<BoothStat[]> {
+  const query = dotTotNghiep ? `?dotTotNghiep=${encodeURIComponent(dotTotNghiep)}` : ''
+  const res = await customAxiosInstance<{ data: BoothStat[] }>(`/api/school-admin/booth-stats${query}`, {
     method: 'GET',
   })
   return (res as any).data ?? []
@@ -56,12 +57,13 @@ function typeBadge(type?: UnitType) {
 
 interface BoothScanStatsProps {
   filterType?: UnitType | 'all'
+  dotTotNghiep?: string
 }
 
-export function BoothScanStats({ filterType = 'all' }: BoothScanStatsProps) {
+export function BoothScanStats({ filterType = 'all', dotTotNghiep }: BoothScanStatsProps) {
   const { data: boothStats = [], isLoading, isError } = useQuery({
-    queryKey: ['school-admin', 'booth-stats'],
-    queryFn: fetchBoothStats,
+    queryKey: ['school-admin', 'booth-stats', dotTotNghiep ?? 'all'],
+    queryFn: () => fetchBoothStats(dotTotNghiep),
     refetchInterval: 30_000,
   })
 
