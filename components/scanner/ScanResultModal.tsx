@@ -115,7 +115,7 @@ export function ScanResultModal({
                 </div>
               )}
 
-              {visitor.phone && (
+              {visitor.phone !=="Thang_8_nam_2026" && (
                 <div className="flex items-center gap-3">
                   <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <div className="min-w-0">
@@ -125,7 +125,7 @@ export function ScanResultModal({
                 </div>
               )}
 
-              {visitor.className && (
+              {visitor.className!=="Thang_8_nam_2026" && (
                 <div className="flex items-center gap-3">
                   <BookOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <div className="min-w-0">
@@ -135,7 +135,7 @@ export function ScanResultModal({
                 </div>
               )}
 
-              {visitor.department && (
+              {visitor.department !=="Thang_8_nam_2026" && (
                 <div className="flex items-center gap-3">
                   <BookOpen className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                   <div className="min-w-0">
@@ -172,7 +172,7 @@ export function ScanResultModal({
           <Alert className="border-yellow-300 bg-yellow-50 text-yellow-800">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
             <AlertDescription>
-              Sinh viên này đã check-in tại gian hàng này trước đó.
+              Sinh viên này đã check-in đợt tốt nghiệp này trước đó.
             </AlertDescription>
           </Alert>
         )}
