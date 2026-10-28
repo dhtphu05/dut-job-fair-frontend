@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 
 // Orval-generated endpoints already include /api, so baseURL must stay at host root.
 const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_HOST || 'http://localhost:3000';
@@ -22,22 +22,71 @@ axiosInstance.interceptors.request.use((config) => {
     return config;
 });
 
-// Response interceptor to handle errors (e.g., global 401 redirect)
+// A separate client prevents refresh failures from recursively refreshing.
+const refreshClient = axios.create({ baseURL });
+let refreshInFlight: Promise<string> | null = null;
+type RetryConfig = InternalAxiosRequestConfig & { authRetried?: boolean };
+
+function expireSession(error: AxiosError, expectedToken: string | null) {
+    // A late response must not clear a newer login.
+    if (localStorage.getItem('auth_token') === expectedToken) {
+        for (const key of ['auth_token', 'refresh_token', 'booth_id', 'user_role']) localStorage.removeItem(key);
+    }
+    if (error.response) {
+        error.response.data = { message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại rồi thử lại thao tác.' };
+    }
+    return error;
+}
+
+function refreshAccessToken() {
+    if (!refreshInFlight) {
+        const refreshToken = localStorage.getItem('refresh_token');
+        refreshInFlight = refreshClient.post('/api/auth/refresh', { refreshToken })
+            .then(response => {
+                const tokens = response.data?.data;
+                if (!tokens?.accessToken || !tokens?.refreshToken) throw new Error('Không nhận được token làm mới phiên');
+                if (localStorage.getItem('refresh_token') !== refreshToken) throw new Error('Phiên đăng nhập đã thay đổi. Vui lòng thử lại.');
+                localStorage.setItem('auth_token', tokens.accessToken);
+                localStorage.setItem('refresh_token', tokens.refreshToken);
+                return tokens.accessToken as string;
+            })
+            .finally(() => { refreshInFlight = null; });
+    }
+    return refreshInFlight;
+}
+
 axiosInstance.interceptors.response.use(
     (response) => {
         return response;
     },
     async (error: AxiosError) => {
-        // Basic 401 handling
-        if (error.response?.status === 401) {
-            if (typeof window !== 'undefined') {
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('booth_id');
-                // Let the app handle the redirect logic (e.g. by wrapping components or triggering state changes)
-                // window.location.href = '/login'; 
-            }
+        const config = error.config as RetryConfig | undefined;
+        if (error.response?.status !== 401 || typeof window === 'undefined' || !config ||
+            /\/auth\/(login|register|refresh)(?:[/?]|$)/.test(config.url ?? '')) throw error;
+
+        const failedToken = String(config.headers.Authorization ?? '').replace(/^Bearer\s+/i, '') || null;
+        const currentToken = localStorage.getItem('auth_token');
+        if (config.authRetried) throw expireSession(error, failedToken);
+        config.authRetried = true;
+
+        // Another request may already have completed the refresh.
+        if (currentToken && currentToken !== failedToken) {
+            config.headers.Authorization = `Bearer ${currentToken}`;
+            return axiosInstance(config);
         }
-        return Promise.reject(error);
+        if (!localStorage.getItem('refresh_token')) throw expireSession(error, failedToken);
+        let token: string;
+        try {
+            token = await refreshAccessToken();
+        } catch (refreshError) {
+            if (axios.isAxiosError(refreshError) && [401, 403].includes(refreshError.response?.status ?? 0)) {
+                throw expireSession(error, failedToken);
+            }
+            // Network/server failures are recoverable: retain the session and form.
+            throw refreshError;
+        }
+        config.headers.Authorization = `Bearer ${token}`;
+        return axiosInstance(config);
     }
 );
 

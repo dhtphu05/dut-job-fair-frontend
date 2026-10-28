@@ -5,9 +5,7 @@ import { LogOut } from 'lucide-react'
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
@@ -39,6 +37,7 @@ export function UserProfileHeader() {
             console.error('Logout failed on backend', e)
         } finally {
             localStorage.removeItem('auth_token')
+            localStorage.removeItem('refresh_token')
             localStorage.removeItem('user_role')
             localStorage.removeItem('booth_id')
             queryClient.clear() // Clear all react-query cache
@@ -50,6 +49,9 @@ export function UserProfileHeader() {
     const user = profileResponse?.data || (profileResponse as any)?.user || profileResponse
     const userEmail = user?.email || 'User'
     const userInitial = userEmail.charAt(0).toUpperCase()
+    const avatarSrc =
+        user?.logoUrl ||
+        `https://api.dicebear.com/7.x/initials/svg?seed=${userEmail}&backgroundColor=2563eb&textColor=ffffff`
 
     if (isLoading) {
         return <div className="h-9 w-9 animate-pulse bg-slate-200 rounded-full"></div>
@@ -68,8 +70,12 @@ export function UserProfileHeader() {
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 hover:bg-transparent focus-visible:ring-offset-2 focus-visible:ring-blue-600">
-                        <Avatar className="h-9 w-9 border-2 border-blue-100 transition-all hover:scale-105 active:scale-95 shadow-sm">
-                            <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${userEmail}&backgroundColor=2563eb&textColor=ffffff`} />
+                        <Avatar className="h-9 w-9 border-2 border-blue-100 bg-white transition-all hover:scale-105 active:scale-95 shadow-sm">
+                            <AvatarImage
+                                src={avatarSrc}
+                                alt={user?.name || userEmail}
+                                className="object-contain"
+                            />
                             <AvatarFallback className="bg-blue-600 text-white font-bold text-xs">
                                 {userInitial}
                             </AvatarFallback>
@@ -79,7 +85,10 @@ export function UserProfileHeader() {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                     <DropdownMenuLabel className="font-normal">
                         <div className="flex flex-col space-y-1">
-                            <p className="text-sm font-medium leading-none">{user.email}</p>
+                            {user.name && (
+                                <p className="text-sm font-semibold leading-snug text-slate-900">{user.name}</p>
+                            )}
+                            <p className="text-xs font-medium leading-none text-slate-600">{user.email}</p>
                             <p className="text-xs leading-none text-muted-foreground">
                                 {user.role === 'SCHOOL_ADMIN' ? 'Ban tổ chức' : 'Doanh nghiệp'}
                             </p>

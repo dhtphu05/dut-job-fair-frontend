@@ -172,7 +172,7 @@ export function ScanResultModal({
           <Alert className="border-yellow-300 bg-yellow-50 text-yellow-800">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
             <AlertDescription>
-              Sinh viên này đã check-in đợt tốt nghiệp này trước đó.
+              Sinh viên này đã check-in gian hàng này trước đó.
             </AlertDescription>
           </Alert>
         )}

@@ -109,7 +109,7 @@ export default function Home() {
               <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center mb-3">
                 <Globe className="h-5 w-5 text-teal-500" />
               </div>
-              <span className="text-2xl font-black text-slate-900 mb-1">60+</span>
+              <span className="text-2xl font-black text-slate-900 mb-1">20</span>
               <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider text-center">Doanh nghiệp</span>
             </div>
 
@@ -117,7 +117,7 @@ export default function Home() {
               <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center mb-3">
                 <Star className="h-5 w-5 text-orange-500" />
               </div>
-              <span className="text-2xl font-black text-slate-900 mb-1">7,200+</span>
+              <span className="text-2xl font-black text-slate-900 mb-1">1000+</span>
               <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider text-center">Vị trí tuyển dụng</span>
             </div>
 

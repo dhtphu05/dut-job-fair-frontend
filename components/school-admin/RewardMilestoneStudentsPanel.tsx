@@ -326,6 +326,9 @@ export function RewardMilestoneStudentsPanel() {
                     <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
                       {currentMilestone.requiredBooths} gian hàng
                     </Badge>
+                    {currentMilestone.requiresSpecialStamps && (
+                      <Badge variant="outline">Trong đó có đủ {currentMilestone.requiredWorkshopIds?.length ?? 2} workshop bắt buộc</Badge>
+                    )}
                     <Badge
                       className={
                         currentMilestone.isActive

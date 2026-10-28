@@ -8,6 +8,8 @@ export type RewardMilestone = {
   name: string
   description?: string | null
   requiredBooths: number
+  requiresSpecialStamps?: boolean
+  requiredWorkshopIds?: string[] | null
   sortOrder: number
   isActive: boolean
   createdAt?: string
@@ -18,11 +20,26 @@ export type RewardMilestonePayload = {
   name: string
   description?: string
   requiredBooths: number
+  requiresSpecialStamps?: boolean
+  requiredWorkshopIds?: string[]
   sortOrder?: number
   isActive?: boolean
 }
 
 const rewardMilestonesQueryKey = ['rewards', 'milestones']
+
+export type RewardWorkshop = { id: string; name: string; qrCode?: string }
+
+export function useRewardWorkshops(enabled = true) {
+  return useQuery({
+    queryKey: ['rewards', 'workshops'],
+    enabled,
+    queryFn: async () => {
+      const res = await customAxiosInstance<{ data: RewardWorkshop[] }>('/api/booths?type=workshop', { method: 'GET' })
+      return res.data
+    },
+  })
+}
 
 async function fetchRewardMilestones() {
   const res = await customAxiosInstance<{ data: RewardMilestone[] }>(
@@ -86,6 +103,7 @@ export function useUpdateRewardMilestone() {
     mutationFn: updateRewardMilestone,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: rewardMilestonesQueryKey })
+      await queryClient.invalidateQueries({ queryKey: ['rewards', 'milestone-students'] })
     },
   })
 }

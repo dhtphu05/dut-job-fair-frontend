@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAuthControllerGetProfile } from '@/lib/api/generated/auth/auth'
 import Link from 'next/link'
 
 interface NavItem {
@@ -33,6 +34,9 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { data: profileResponse } = useAuthControllerGetProfile()
+  const user = profileResponse?.data || (profileResponse as any)?.user || profileResponse
+  const companyLogoUrl = user?.logoUrl
 
   return (
     <div className="flex flex-col h-[100dvh] bg-white overflow-hidden">
@@ -55,9 +59,19 @@ export function DashboardLayout({
             
             {/* Logo / Home Link (Strictly Navigation ONLY) */}
             <Link href="/" className="flex items-center gap-2 group transition-all min-w-0">
-              <div className="w-8 h-8 shrink-0 bg-blue-600 rounded-lg flex items-center justify-center group-hover:rotate-12 transition-transform shadow-lg shadow-blue-500/20">
-                <span className="text-white font-bold text-xs">D</span>
-              </div>
+              {companyLogoUrl ? (
+                <div className="w-9 h-9 shrink-0 bg-white border border-slate-200 rounded-lg flex items-center justify-center overflow-hidden p-0.5 shadow-sm">
+                  <img
+                    src={companyLogoUrl}
+                    alt={user?.name || title}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="w-8 h-8 shrink-0 bg-blue-600 rounded-lg flex items-center justify-center group-hover:rotate-12 transition-transform shadow-lg shadow-blue-500/20">
+                  <span className="text-white font-bold text-xs">D</span>
+                </div>
+              )}
               <div className="min-w-0">
                 <h1 className="text-base sm:text-xl font-bold text-foreground leading-tight truncate">{title}</h1>
                 <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{subtitle}</p>

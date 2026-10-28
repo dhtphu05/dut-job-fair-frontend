@@ -75,6 +75,26 @@ function getBackendData<T>(response: unknown): T | undefined {
   return (response as { data?: T }).data
 }
 
+/**
+ * A few legacy QR exports use the graduation-batch code as a placeholder for
+ * missing optional student information.  The result modal already omits empty
+ * fields, so convert that placeholder to an empty value before rendering.
+ */
+function getVisibleQrField(graduationBatch: unknown, ...values: unknown[]): string {
+  const placeholder = typeof graduationBatch === 'string'
+    ? graduationBatch.trim()
+    : ''
+
+  for (const value of values) {
+    if (typeof value !== 'string') continue
+
+    const normalized = value.trim()
+    if (normalized && normalized !== placeholder) return normalized
+  }
+
+  return ''
+}
+
 export default function ScannerPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -209,16 +229,18 @@ export default function ScannerPage() {
         // Play success/duplicate sound
         playBeep(result.status === 'duplicate' ? 'duplicate' : 'success')
 
+        const graduationBatch = qrPayload?.dot_tot_nghiep || result.visitor?.graduationBatch
         const visitorData: Visitor = {
           id: result.visitor?.id || '',
           studentCode: result.visitor?.studentCode || qrPayload?.ma_so_sinh_vien || rawValue,
           fullName: result.visitor?.fullName || qrPayload?.ho_ten || '',
-          email: result.visitor?.email || qrPayload?.email || '',
-          phone: result.visitor?.phone || qrPayload?.phone || '',
-          major: result.visitor?.major || '',
+          email: getVisibleQrField(graduationBatch, result.visitor?.email, qrPayload?.email),
+          phone: getVisibleQrField(graduationBatch, result.visitor?.phone, qrPayload?.phone),
+          major: getVisibleQrField(graduationBatch, result.visitor?.major),
           year: result.visitor?.year || 0,
-          className: (result.visitor as any)?.className || qrPayload?.lop || '',
-          department: (result.visitor as any)?.department || '',
+          className: getVisibleQrField(graduationBatch, result.visitor?.className, qrPayload?.lop),
+          department: getVisibleQrField(graduationBatch, result.visitor?.department, qrPayload?.khoa),
+          graduationBatch: getVisibleQrField(graduationBatch, result.visitor?.graduationBatch),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         }

@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { RewardWorkshopSelect } from './RewardWorkshopSelect'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -30,6 +31,7 @@ type MilestoneFormState = {
   name: string
   description: string
   requiredBooths: string
+  requiredWorkshopIds: string[]
   sortOrder: string
   isActive: boolean
 }
@@ -38,6 +40,7 @@ const emptyForm: MilestoneFormState = {
   name: '',
   description: '',
   requiredBooths: '3',
+  requiredWorkshopIds: [],
   sortOrder: '0',
   isActive: true,
 }
@@ -47,6 +50,7 @@ function mapMilestoneToForm(milestone: RewardMilestone): MilestoneFormState {
     name: milestone.name,
     description: milestone.description ?? '',
     requiredBooths: String(milestone.requiredBooths),
+    requiredWorkshopIds: milestone.requiredWorkshopIds ?? [],
     sortOrder: String(milestone.sortOrder ?? 0),
     isActive: milestone.isActive,
   }
@@ -57,6 +61,7 @@ function buildPayload(form: MilestoneFormState): RewardMilestonePayload {
     name: form.name.trim(),
     description: form.description.trim() || undefined,
     requiredBooths: Number(form.requiredBooths),
+    requiredWorkshopIds: form.requiredWorkshopIds,
     sortOrder: Number(form.sortOrder || 0),
     isActive: form.isActive,
   }
@@ -71,6 +76,9 @@ function validateForm(form: MilestoneFormState) {
   }
 
   const sortOrder = Number(form.sortOrder)
+  if (requiredBooths < form.requiredWorkshopIds.length) {
+    return 'Số workshop được chọn không được vượt quá tổng số booth yêu cầu'
+  }
   if (!Number.isInteger(sortOrder) || sortOrder < 0) {
     return 'Thứ tự hiển thị phải là số nguyên lớn hơn hoặc bằng 0'
   }
@@ -99,7 +107,7 @@ function MilestoneDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -134,11 +142,12 @@ function MilestoneDialog({
             <Input
               id="milestone-required"
               type="number"
-              min={1}
+              min={Math.max(1, form.requiredWorkshopIds.length)}
               value={form.requiredBooths}
               onChange={(e) => onFormChange({ requiredBooths: e.target.value })}
               disabled={isSubmitting}
             />
+            <RewardWorkshopSelect selected={form.requiredWorkshopIds} onChange={(ids) => onFormChange({ requiredWorkshopIds: ids })} requiredBooths={Number(form.requiredBooths)} disabled={isSubmitting} open={open} />
           </div>
 
           <div className="space-y-2">
@@ -391,7 +400,7 @@ export function RewardMilestonesPanel() {
                       <div className="flex flex-wrap gap-4 text-sm">
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Flag className="h-4 w-4" />
-                          <span>Yêu cầu: <span className="font-semibold text-foreground">{milestone.requiredBooths} booth</span></span>
+                          <span>Yêu cầu: <span className="font-semibold text-foreground">{milestone.requiredBooths} booth{milestone.requiresSpecialStamps ? ' (trong đó có đủ ' + (milestone.requiredWorkshopIds?.length ?? 2) + ' workshop bắt buộc)' : ''}</span></span>
                         </div>
                         <div className="text-muted-foreground">
                           Thứ tự hiển thị: <span className="font-semibold text-foreground">{milestone.sortOrder}</span>

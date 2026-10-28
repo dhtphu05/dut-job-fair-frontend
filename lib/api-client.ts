@@ -44,6 +44,7 @@ class ApiClient {
     this.token = null
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token')
+      localStorage.removeItem('refresh_token')
       localStorage.removeItem('booth_id')
       localStorage.removeItem('user_role')
     }

@@ -62,6 +62,11 @@ export default function LoginPage() {
       return
     }
     localStorage.setItem('auth_token', accessToken)
+    if (authDto?.refreshToken) {
+      localStorage.setItem('refresh_token', authDto.refreshToken)
+    } else {
+      localStorage.removeItem('refresh_token')
+    }
 
     if (authDto?.role) {
       localStorage.setItem('user_role', authDto.role)
