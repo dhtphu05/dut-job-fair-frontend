@@ -111,7 +111,7 @@ pnpm install
 pnpm dev
 ```
 
-Visit `http://localhost:3000` in your browser.
+Visit `http://localhost:3001` in your browser. Start the backend separately with `npm run start:local` in `C:\My_Data\Project\dut-job-fair-backend` (Docker Desktop must be running). The backend API runs at `http://localhost:3000/api`.
 
 ## Backend Integration
 
@@ -206,7 +206,7 @@ Password: password123
 Create a `.env.local` file:
 
 ```
-NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_API_URL=http://localhost:3000
 ```
 
 ## PWA Configuration

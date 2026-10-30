@@ -53,8 +53,8 @@ interface CheckinsResponse {
 
 const PAGE_SIZE = 30
 
-async function fetchCheckins(page: number, dotTotNghiep?: string): Promise<CheckinsResponse> {
-  const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) })
+async function fetchCheckins(dotTotNghiep?: string): Promise<CheckinsResponse> {
+  const params = new URLSearchParams({ page: '1', pageSize: '99999' })
   if (dotTotNghiep) params.set('dotTotNghiep', dotTotNghiep)
 
   const res = await customAxiosInstance<any>(`/api/school-admin/checkins?${params.toString()}`, {
@@ -101,16 +101,15 @@ export function StudentCheckinList({ defaultTypeFilter = 'all', dotTotNghiep, to
 
   useEffect(() => {
     setPage(1)
-  }, [dotTotNghiep])
+  }, [dotTotNghiep, filterType, filterDept, searchTerm])
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['school-admin', 'checkins', page, dotTotNghiep ?? 'all'],
-    queryFn: () => fetchCheckins(page, dotTotNghiep),
+    queryKey: ['school-admin', 'checkins', dotTotNghiep ?? 'all'],
+    queryFn: () => fetchCheckins(dotTotNghiep),
     refetchInterval: 30_000,
   })
 
   const items: CheckinItem[] = data?.items ?? []
-  const total = data?.total ?? 0
 
   const filtered = useMemo(() => {
     return items.filter((c) => {
@@ -126,11 +125,18 @@ export function StudentCheckinList({ defaultTypeFilter = 'all', dotTotNghiep, to
     })
   }, [items, searchTerm, filterDept, filterType])
 
+  const total = filtered.length
+  const paginatedItems = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  )
+
   const summaryTotal = useMemo(() => {
-    if (!totalsByType) return total
+    if (searchTerm || filterDept) return filtered.length
+    if (!totalsByType) return filtered.length
     if (filterType === 'all') return totalsByType.all
-    return totalsByType[filterType]
-  }, [filterType, total, totalsByType])
+    return totalsByType[filterType] ?? filtered.length
+  }, [filterType, filterDept, searchTerm, filtered.length, totalsByType])
 
   const uniqueDepts = useMemo(
     () => [...new Set(items.map((c) => c.student.department).filter(Boolean))],
@@ -263,8 +269,8 @@ export function StudentCheckinList({ defaultTypeFilter = 'all', dotTotNghiep, to
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length > 0 ? (
-              filtered.map((c) => (
+            {paginatedItems.length > 0 ? (
+              paginatedItems.map((c) => (
                 <TableRow key={c.id} className="hover:bg-gray-50 transition-colors">
                   <TableCell className="font-mono text-sm font-medium">
                     {c.student.studentCode}

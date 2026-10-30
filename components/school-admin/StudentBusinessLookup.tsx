@@ -23,12 +23,15 @@ interface BusinessEntry {
   industry: string | null
   website: string | null
   boothName: string
-  checkInTime: string
+  type?: 'booth' | 'workshop' | 'totnghiep'
+  checkInTime?: string
+  lastCheckInTime?: string
 }
 
 interface LookupResult {
   studentCode: string
   fullName: string
+  checkedInBooths?: number
   totalBusinesses: number
   businesses: BusinessEntry[]
 }
@@ -182,7 +185,9 @@ export function StudentBusinessLookup() {
                     )}
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="h-3.5 w-3.5 shrink-0" />
-                      <span className="text-xs">{formatVNDateTime(biz.checkInTime)}</span>
+                      <span className="text-xs">
+                        {formatVNDateTime(biz.checkInTime ?? biz.lastCheckInTime ?? '')}
+                      </span>
                     </div>
                   </div>
                 </div>
