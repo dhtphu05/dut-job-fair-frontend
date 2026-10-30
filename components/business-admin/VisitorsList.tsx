@@ -1,3 +1,6 @@
+'use client'
+
+import { useVisibleCheckins } from '@/hooks/use-visible-checkins'
 import {
   Table,
   TableBody,
@@ -18,20 +21,23 @@ interface VisitorsListProps {
   isLoading?: boolean
 }
 
-export function VisitorsList({ visitors, isLoading = false }: VisitorsListProps) {
+export function VisitorsList({ visitors: allVisitors, isLoading = false }: VisitorsListProps) {
+  const visitors = useVisibleCheckins(allVisitors, (visitor) => visitor.createdAt)
   const [searchTerm, setSearchTerm] = useState('')
 
-  const filteredVisitors = visitors.filter(
+  const matchingVisitors = allVisitors.filter(
     (visitor) =>
       visitor.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (visitor.email ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       visitor.studentCode.includes(searchTerm)
   )
 
+  const filteredVisitors = useVisibleCheckins(matchingVisitors, (visitor) => visitor.createdAt)
+
   const handleExport = () => {
     const csv = [
       ['Mã SV', 'Tên đầy đủ', 'Email', 'Điện thoại', 'Ngành', 'Năm'].join(','),
-      ...filteredVisitors.map((v) =>
+      ...matchingVisitors.map((v) =>
         [v.studentCode, v.fullName, v.email, v.phone, v.major, v.year].join(',')
       ),
     ].join('\n')

@@ -1,5 +1,6 @@
 'use client'
 
+import { useVisibleCheckins } from '@/hooks/use-visible-checkins'
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -235,12 +236,13 @@ function GraduationBatchSelect({
 }
 
 function RecentScansPanel({
-  scans,
+  scans: allScans,
   unitType,
 }: {
   scans: RecentScan[]
   unitType: UnitType
 }) {
+  const scans = useVisibleCheckins(allScans, (scan) => scan.checkInTime)
   const meta = getUnitMeta(unitType)
 
   return (

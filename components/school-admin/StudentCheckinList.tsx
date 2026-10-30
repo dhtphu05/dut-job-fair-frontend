@@ -1,5 +1,6 @@
 'use client'
 
+import { useVisibleCheckins } from '@/hooks/use-visible-checkins'
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -111,7 +112,7 @@ export function StudentCheckinList({ defaultTypeFilter = 'all', dotTotNghiep, to
 
   const items: CheckinItem[] = data?.items ?? []
 
-  const filtered = useMemo(() => {
+  const matchingItems = useMemo(() => {
     return items.filter((c) => {
       const q = searchTerm.toLowerCase()
       const matchSearch =
@@ -125,18 +126,14 @@ export function StudentCheckinList({ defaultTypeFilter = 'all', dotTotNghiep, to
     })
   }, [items, searchTerm, filterDept, filterType])
 
+  const filtered = useVisibleCheckins(matchingItems, (item) => item.checkInTime)
   const total = filtered.length
   const paginatedItems = useMemo(
     () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
     [filtered, page],
   )
 
-  const summaryTotal = useMemo(() => {
-    if (searchTerm || filterDept) return filtered.length
-    if (!totalsByType) return filtered.length
-    if (filterType === 'all') return totalsByType.all
-    return totalsByType[filterType] ?? filtered.length
-  }, [filterType, filterDept, searchTerm, filtered.length, totalsByType])
+  const summaryTotal = filtered.length
 
   const uniqueDepts = useMemo(
     () => [...new Set(items.map((c) => c.student.department).filter(Boolean))],
@@ -144,9 +141,9 @@ export function StudentCheckinList({ defaultTypeFilter = 'all', dotTotNghiep, to
   )
 
   const handleExport = () => {
-    if (filtered.length === 0) return
+    if (matchingItems.length === 0) return
     const headers = ['MSSV', 'Tên sinh viên', 'Khoa', 'Lớp', 'Gian hàng', 'Công ty', 'Thời gian check-in']
-    const rows = filtered.map((c) => [
+    const rows = matchingItems.map((c) => [
       c.student.studentCode,
       c.student.fullName,
       c.student.department ?? '',

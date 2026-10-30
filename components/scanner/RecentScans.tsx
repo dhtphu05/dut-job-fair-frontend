@@ -1,3 +1,6 @@
+'use client'
+
+import { useVisibleCheckins } from '@/hooks/use-visible-checkins'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -9,7 +12,8 @@ interface RecentScansProps {
   scans: ScanRecord[]
 }
 
-export function RecentScans({ scans }: RecentScansProps) {
+export function RecentScans({ scans: allScans }: RecentScansProps) {
+  const scans = useVisibleCheckins(allScans, (scan) => scan.timestamp)
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'success':

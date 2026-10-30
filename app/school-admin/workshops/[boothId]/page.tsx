@@ -1,5 +1,6 @@
 'use client'
 
+import { useVisibleCheckins } from '@/hooks/use-visible-checkins'
 import { useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
@@ -43,6 +44,7 @@ export default function SchoolAdminWorkshopDetailPage() {
     enabled: !!boothId,
   })
 
+  const visibleCheckins = useVisibleCheckins(data?.recentCheckins ?? [], (item) => item.checkInTime)
   const workshop = data?.workshop
   const account = data?.account
   const stats = data?.stats
@@ -248,8 +250,8 @@ export default function SchoolAdminWorkshopDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(data?.recentCheckins ?? []).length > 0 ? (
-                    data?.recentCheckins.map((item) => (
+                  {visibleCheckins.length > 0 ? (
+                    visibleCheckins.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-semibold">{item.student.fullName}</TableCell>
                         <TableCell className="font-mono text-blue-600">{item.student.studentCode}</TableCell>

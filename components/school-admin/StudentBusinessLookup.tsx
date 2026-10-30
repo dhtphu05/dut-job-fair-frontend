@@ -1,5 +1,6 @@
 'use client'
 
+import { useVisibleCheckins } from '@/hooks/use-visible-checkins'
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -42,6 +43,8 @@ export function StudentBusinessLookup() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const visibleBusinesses = useVisibleCheckins(result?.businesses ?? [], (biz) => biz.checkInTime ?? biz.lastCheckInTime)
 
   const handleSearch = async () => {
     const code = studentCode.trim()
@@ -132,13 +135,13 @@ export function StudentBusinessLookup() {
               <p className="text-sm text-muted-foreground">MSSV: {result.studentCode}</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-2xl font-bold text-blue-600">{result.totalBusinesses}</p>
+              <p className="text-2xl font-bold text-blue-600">{visibleBusinesses.length}</p>
               <p className="text-xs text-muted-foreground">doanh nghiệp</p>
             </div>
           </div>
 
           {/* No checkins */}
-          {result.totalBusinesses === 0 && (
+          {visibleBusinesses.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <Building2 className="h-10 w-10 mb-3 opacity-30" />
               <p className="text-sm">Sinh viên chưa check-in tại doanh nghiệp nào.</p>
@@ -146,9 +149,9 @@ export function StudentBusinessLookup() {
           )}
 
           {/* Business cards grid */}
-          {result.businesses.length > 0 && (
+          {visibleBusinesses.length > 0 && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {result.businesses.map((biz, idx) => (
+              {visibleBusinesses.map((biz, idx) => (
                 <div
                   key={biz.businessId}
                   className="rounded-lg border border-border/50 bg-white p-4 space-y-3 hover:shadow-sm transition-shadow"

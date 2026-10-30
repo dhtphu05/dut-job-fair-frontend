@@ -1,5 +1,6 @@
 'use client'
 
+import { useVisibleCheckins } from '@/hooks/use-visible-checkins'
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -52,7 +53,8 @@ export function WorkshopAttendanceTable({
     return value.includes('T') || value.endsWith('Z') ? formatVNDateTime(value) : value
   }
 
-  const sortedItems = [...items].sort((a, b) => {
+  const visibleItems = useVisibleCheckins(items, (item) => item.checkInTime)
+  const sortedItems = [...visibleItems].sort((a, b) => {
     const aTime = new Date(a.checkInTime.replace(' ', 'T')).getTime()
     const bTime = new Date(b.checkInTime.replace(' ', 'T')).getTime()
 
@@ -79,7 +81,7 @@ export function WorkshopAttendanceTable({
                 <div key={index} className="h-14 rounded-2xl bg-slate-50 animate-pulse" />
               ))}
             </div>
-          ) : items.length === 0 ? (
+          ) : visibleItems.length === 0 ? (
             <div className="py-16 text-center">
               <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-blue-50">
                 <Users className="h-10 w-10 text-blue-200" />
